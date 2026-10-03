@@ -228,8 +228,7 @@ export default function DiaryHomeScreen() {
             activeOpacity={0.8}
             onPress={() => router.push('/new-entry')}
             style={[styles.addDrinkHeaderBtn, { backgroundColor: colors.primaryContainer }]}>
-            <Text style={[styles.addDrinkIcon, { color: colors.secondaryFixed }]}>+</Text>
-            <Text style={[styles.addDrinkText, { color: colors.onPrimary }]}>Add Drink</Text>
+            <Text style={[styles.addDrinkIcon, { color: colors.secondaryFixed }]}>+ Log Drink</Text>
           </TouchableOpacity>
         </View>
 
