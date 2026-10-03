@@ -81,11 +81,15 @@ export default function DiaryHomeScreen() {
 
   const filteredEntries = entries.filter((item) => {
     const matchesCategory = selectedCategory === 'All' || item.archetype === selectedCategory;
+    const query = searchQuery.trim().toLowerCase();
     const matchesQuery =
-      searchQuery.trim() === '' ||
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.notes.toLowerCase().includes(searchQuery.toLowerCase());
+      query === '' ||
+      item.name.toLowerCase().includes(query) ||
+      item.manufacturer.toLowerCase().includes(query) ||
+      (item.country ? item.country.toLowerCase().includes(query) : false) ||
+      (item.city ? item.city.toLowerCase().includes(query) : false) ||
+      (item.subtype ? item.subtype.toLowerCase().includes(query) : false) ||
+      item.notes.toLowerCase().includes(query);
     return matchesCategory && matchesQuery;
   });
 
@@ -99,11 +103,12 @@ export default function DiaryHomeScreen() {
       year: 'numeric',
     });
     const descriptor = SCORE_DESCRIPTIONS[item.rating] || `${item.rating}.0`;
+    const locationText = [item.city, item.country].filter(Boolean).join(', ');
 
     return (
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={() => router.push({ pathname: '/new-entry', params: { id: item.id } })}
+        onPress={() => router.push({ pathname: '/entry-detail', params: { id: item.id } })}
         style={[styles.card, { backgroundColor: colors.surfaceContainerLow }]}>
         {/* Card Image Banner */}
         <View style={styles.cardImageContainer}>
@@ -115,6 +120,7 @@ export default function DiaryHomeScreen() {
             <View style={styles.archetypeBadge}>
               <Text style={styles.archetypeBadgeText}>
                 {ARCHETYPE_ICONS[item.archetype] || '✨'} {item.archetype}
+                {item.subtype ? ` • ${item.subtype}` : ''}
               </Text>
             </View>
 
@@ -137,9 +143,23 @@ export default function DiaryHomeScreen() {
           <View style={styles.cardTitleRow}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.cardTitle, { color: colors.primary }]}>{item.name}</Text>
+              {item.subtype ? (
+                <View style={styles.subtypeBadgeRow}>
+                  <View style={[styles.subtypePill, { backgroundColor: colors.surfaceContainerHighest }]}>
+                    <Text style={[styles.subtypePillText, { color: colors.primary }]}>
+                      {item.subtype}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
               {item.manufacturer ? (
                 <Text style={[styles.cardManufacturer, { color: colors.secondary }]}>
-                  📍 {item.manufacturer}
+                  🏷️ {item.manufacturer}
+                </Text>
+              ) : null}
+              {locationText ? (
+                <Text style={[styles.cardLocation, { color: colors.secondary }]}>
+                  📍 {locationText}
                 </Text>
               ) : null}
             </View>
@@ -491,9 +511,30 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 24,
   },
+  subtypeBadgeRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  subtypePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  subtypePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
   cardManufacturer: {
     fontSize: 13,
     fontWeight: '600',
+    marginTop: 2,
+  },
+  cardLocation: {
+    fontSize: 13,
+    fontWeight: '500',
     marginTop: 2,
   },
   deleteButton: {

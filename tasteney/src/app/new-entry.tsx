@@ -18,7 +18,9 @@ import { RatingSelector } from '@/components/rating-selector';
 import { ImageSelector } from '@/components/image-selector';
 import { SensorySelector } from '@/components/sensory-selector';
 import { saveDrinkEntry, getDrinkEntryById } from '@/services/storage';
-import { BeverageArchetype, SensoryDescriptor } from '@/types/drink';
+import { resolveLocationFromAsset } from '@/services/location';
+import type { ImagePickerAsset } from 'expo-image-picker';
+import { BeverageArchetype, BEVERAGE_SUBTYPES, SensoryDescriptor } from '@/types/drink';
 
 const ARCHETYPES: { label: BeverageArchetype; icon: string }[] = [
   { label: 'Wine', icon: '🍷' },
@@ -43,10 +45,15 @@ export default function NewEntryScreen() {
 
   const [name, setName] = useState('');
   const [manufacturer, setManufacturer] = useState('');
+  const [country, setCountry] = useState('');
+  const [city, setCity] = useState('');
+  const [isGeocodingLocation, setIsGeocodingLocation] = useState(false);
+  const [autoDetectedLocation, setAutoDetectedLocation] = useState<string | null>(null);
   const [rating, setRating] = useState<number>(8);
   const [notes, setNotes] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [archetype, setArchetype] = useState<BeverageArchetype>('Wine');
+  const [subtype, setSubtype] = useState<string | undefined>(undefined);
   const [selectedDescriptors, setSelectedDescriptors] = useState<SensoryDescriptor[]>([]);
   const [originalCreatedAt, setOriginalCreatedAt] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,10 +66,13 @@ export default function NewEntryScreen() {
         if (isMounted && entry) {
           setName(entry.name || '');
           setManufacturer(entry.manufacturer || '');
+          setCountry(entry.country || '');
+          setCity(entry.city || '');
           setRating(entry.rating ?? 8);
           setNotes(entry.notes || '');
           setImages(entry.images || []);
           setArchetype(entry.archetype || 'Wine');
+          setSubtype(entry.subtype || undefined);
           setSelectedDescriptors(entry.sensoryDescriptors || []);
           setOriginalCreatedAt(entry.createdAt || null);
         }
@@ -72,6 +82,38 @@ export default function NewEntryScreen() {
       isMounted = false;
     };
   }, [editId]);
+
+  const handleArchetypeChange = (newArchetype: BeverageArchetype) => {
+    setArchetype(newArchetype);
+    setSubtype(undefined);
+  };
+
+  const handleImagesAdded = async (newAssets: ImagePickerAsset[]) => {
+    if (!newAssets || newAssets.length === 0) return;
+    setIsGeocodingLocation(true);
+    try {
+      // Look from the last image added backwards to find the first valid GPS coordinate
+      for (let i = newAssets.length - 1; i >= 0; i--) {
+        const asset = newAssets[i];
+        const location = await resolveLocationFromAsset(asset);
+        if (location && (location.country || location.city)) {
+          if (location.country) {
+            setCountry(location.country);
+          }
+          if (location.city) {
+            setCity(location.city);
+          }
+          const displayLabel = [location.city, location.country].filter(Boolean).join(', ');
+          setAutoDetectedLocation(displayLabel);
+          break;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to resolve location from asset:', err);
+    } finally {
+      setIsGeocodingLocation(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -85,10 +127,13 @@ export default function NewEntryScreen() {
         ...(editId ? { id: editId, createdAt: originalCreatedAt || undefined } : {}),
         name: name.trim(),
         manufacturer: manufacturer.trim(),
+        country: country.trim() || undefined,
+        city: city.trim() || undefined,
         rating,
         notes: notes.trim(),
         images,
         archetype,
+        subtype: subtype || undefined,
         sensoryDescriptors: selectedDescriptors,
       });
 
@@ -98,9 +143,14 @@ export default function NewEntryScreen() {
         // Reset or navigate back to the diary
         setName('');
         setManufacturer('');
+        setCountry('');
+        setCity('');
+        setAutoDetectedLocation(null);
         setRating(8);
         setNotes('');
         setImages([]);
+        setArchetype('Wine');
+        setSubtype(undefined);
         setSelectedDescriptors([]);
         setOriginalCreatedAt(null);
         if (router.canGoBack()) {
@@ -121,7 +171,7 @@ export default function NewEntryScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {/* Header */}
+      {/* Header
       <View
         style={[
           styles.header,
@@ -152,7 +202,7 @@ export default function NewEntryScreen() {
             </Text>
           </View>
         </View>
-      </View>
+      </View>*/}
 
       <ScrollView
         contentContainerStyle={[
@@ -178,7 +228,7 @@ export default function NewEntryScreen() {
                 <TouchableOpacity
                   key={item.label}
                   activeOpacity={0.7}
-                  onPress={() => setArchetype(item.label)}
+                  onPress={() => handleArchetypeChange(item.label)}
                   style={[
                     styles.archetypePill,
                     isSelected
@@ -199,9 +249,51 @@ export default function NewEntryScreen() {
           </ScrollView>
         </View>
 
+        {/* Beverage Subtype Selector */}
+        {BEVERAGE_SUBTYPES[archetype]?.length > 0 && (
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                BEVERAGE SUBTYPE
+              </Text>
+              <Text style={[styles.sectionHint, { color: colors.secondary }]}>Optional</Text>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subtypeScroll}>
+              {BEVERAGE_SUBTYPES[archetype].map((item) => {
+                const isSelected = subtype === item;
+                return (
+                  <TouchableOpacity
+                    key={item}
+                    activeOpacity={0.7}
+                    onPress={() => setSubtype(isSelected ? undefined : item)}
+                    style={[
+                      styles.subtypePill,
+                      isSelected
+                        ? [styles.subtypePillSelected, { backgroundColor: colors.primaryContainer }]
+                        : [styles.subtypePillUnselected, { backgroundColor: colors.surfaceContainerLow }],
+                    ]}>
+                    <Text
+                      style={[
+                        styles.subtypeText,
+                        isSelected ? { color: colors.onPrimary, fontWeight: '700' } : { color: colors.text },
+                      ]}>
+                      {item}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Visual Record / Image Selector */}
         <View style={styles.sectionBlock}>
-          <ImageSelector images={images} onChangeImages={setImages} />
+          <ImageSelector
+            images={images}
+            onChangeImages={setImages}
+            onImagesAdded={handleImagesAdded}
+          />
         </View>
 
         {/* Name and Manufacturer Fields */}
@@ -225,13 +317,65 @@ export default function NewEntryScreen() {
             <View style={[styles.inputDivider, { backgroundColor: colors.surfaceContainerHighest }]} />
 
             <View style={styles.subInputRow}>
-              <Text style={[styles.subInputIcon, { color: colors.secondary }]}>📍</Text>
+              <Text style={[styles.subInputIcon, { color: colors.secondary }]}>🏷️</Text>
               <TextInput
                 style={[styles.subInput, { color: colors.text }]}
-                placeholder="Manufacturer / Producer / Estate / Origin"
+                placeholder="Manufacturer / Producer / Estate"
                 placeholderTextColor="rgba(85, 66, 67, 0.45)"
                 value={manufacturer}
                 onChangeText={setManufacturer}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Location & Origin Fields */}
+        <View style={styles.sectionBlock}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              LOCATION & ORIGIN
+            </Text>
+            {isGeocodingLocation ? (
+              <Text style={[styles.sectionHint, { color: colors.primary }]}>Extracting GPS...</Text>
+            ) : autoDetectedLocation ? (
+              <View style={[styles.autoDetectedBadge, { backgroundColor: colors.secondaryFixed }]}>
+                <Text style={[styles.autoDetectedBadgeText, { color: colors.onSecondaryFixed }]}>
+                  📍 Auto-detected
+                </Text>
+              </View>
+            ) : (
+              <Text style={[styles.sectionHint, { color: colors.secondary }]}>Optional</Text>
+            )}
+          </View>
+
+          <View style={[styles.inputCard, { backgroundColor: colors.surfaceContainerLow }]}>
+            <View style={styles.subInputRow}>
+              <Text style={[styles.subInputIcon, { color: colors.secondary }]}>🌍</Text>
+              <TextInput
+                style={[styles.subInput, { color: colors.text }]}
+                placeholder="Country (e.g. France, Ethiopia, Japan)"
+                placeholderTextColor="rgba(85, 66, 67, 0.45)"
+                value={country}
+                onChangeText={(val) => {
+                  setCountry(val);
+                  if (autoDetectedLocation) setAutoDetectedLocation(null);
+                }}
+              />
+            </View>
+
+            <View style={[styles.inputDivider, { backgroundColor: colors.surfaceContainerHighest }]} />
+
+            <View style={styles.subInputRow}>
+              <Text style={[styles.subInputIcon, { color: colors.secondary }]}>🏙️</Text>
+              <TextInput
+                style={[styles.subInput, { color: colors.text }]}
+                placeholder="City / Region (e.g. Bordeaux, Yirgacheffe, Kyoto)"
+                placeholderTextColor="rgba(85, 66, 67, 0.45)"
+                value={city}
+                onChangeText={(val) => {
+                  setCity(val);
+                  if (autoDetectedLocation) setAutoDetectedLocation(null);
+                }}
               />
             </View>
           </View>
@@ -385,6 +529,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  autoDetectedBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  autoDetectedBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   requiredBadge: {
     fontSize: 12,
     fontWeight: '600',
@@ -414,6 +567,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   archetypeText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  subtypeScroll: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  subtypePill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  subtypePillUnselected: {},
+  subtypePillSelected: {
+    shadowColor: '#4d0011',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  subtypeText: {
     fontSize: 13,
     fontWeight: '600',
   },

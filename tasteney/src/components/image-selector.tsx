@@ -17,12 +17,13 @@ import { Colors, Spacing } from '@/constants/theme';
 interface ImageSelectorProps {
   images: string[];
   onChangeImages: (images: string[]) => void;
+  onImagesAdded?: (assets: ImagePicker.ImagePickerAsset[]) => void;
 }
 
 const DEFAULT_FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1200&q=80';
 
-export function ImageSelector({ images, onChangeImages }: ImageSelectorProps) {
+export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSelectorProps) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -42,12 +43,14 @@ export function ImageSelector({ images, onChangeImages }: ImageSelectorProps) {
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
         quality: 0.8,
+        exif: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const newUris = result.assets.map((a) => a.uri);
         const merged = [...images, ...newUris];
         onChangeImages(merged);
+        onImagesAdded?.(result.assets);
         setActiveImageIndex(images.length);
       }
     } catch (error) {
@@ -69,12 +72,14 @@ export function ImageSelector({ images, onChangeImages }: ImageSelectorProps) {
 
       const result = await ImagePicker.launchCameraAsync({
         quality: 0.8,
+        exif: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const newUri = result.assets[0].uri;
         const merged = [...images, newUri];
         onChangeImages(merged);
+        onImagesAdded?.(result.assets);
         setActiveImageIndex(images.length);
       }
     } catch (error) {
