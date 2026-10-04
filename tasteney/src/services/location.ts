@@ -112,6 +112,52 @@ export async function resolveLocationFromCoordinates(coords: Coordinates): Promi
 }
 
 /**
+ * Requests foreground location permissions if not already granted.
+ */
+export async function requestLocationPermissions(): Promise<boolean> {
+  try {
+    const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+    if (existingStatus === 'granted') {
+      return true;
+    }
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    return status === 'granted';
+  } catch (err) {
+    console.error('Failed to request location permissions:', err);
+    return false;
+  }
+}
+
+/**
+ * Retrieves the current device location and reverse-geocodes it to country and city.
+ * Returns null if permissions are denied or if location resolution fails.
+ */
+export async function getCurrentDeviceLocation(): Promise<ResolvedLocation | null> {
+  try {
+    const hasPermission = await requestLocationPermissions();
+    if (!hasPermission) {
+      return null;
+    }
+
+    const position = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+
+    if (!position || !position.coords) {
+      return null;
+    }
+
+    return resolveLocationFromCoordinates({
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    });
+  } catch (err) {
+    console.error('Failed to get current device location:', err);
+    return null;
+  }
+}
+
+/**
  * Extracts coordinates from an ImagePickerAsset and reverse-geocodes to country and city.
  */
 export async function resolveLocationFromAsset(asset: ImagePickerAsset): Promise<ResolvedLocation | null> {
