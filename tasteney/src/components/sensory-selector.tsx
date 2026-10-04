@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   useColorScheme,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
 import { SensoryDescriptor } from '@/types/drink';
+import { translateSensoryTag, isGerman } from '@/i18n';
 
 export type SensoryCategory = 'Smell' | 'Taste' | 'Aftertaste';
 
@@ -97,11 +99,20 @@ function createDescriptorId(category: string, name: string): string {
 interface SensorySelectorProps {
   descriptors: SensoryDescriptor[];
   onChange: (descriptors: SensoryDescriptor[]) => void;
+  onInputActive?: (category: SensoryCategory) => void;
+  onCategoryLayout?: (category: SensoryCategory, y: number) => void;
 }
 
-export function SensorySelector({ descriptors, onChange }: SensorySelectorProps) {
+export function SensorySelector({
+  descriptors,
+  onChange,
+  onInputActive,
+  onCategoryLayout,
+}: SensorySelectorProps) {
   const scheme = useColorScheme();
+  const { t } = useTranslation();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
+  const german = isGerman();
 
   const [inputValues, setInputValues] = useState<Record<SensoryCategory, string>>({
     Smell: '',
@@ -162,27 +173,32 @@ export function SensorySelector({ descriptors, onChange }: SensorySelectorProps)
         const currentInput = inputValues[category] || '';
         const categoryDescriptors = descriptors.filter((d) => isCategoryMatch(d.category, category));
 
-        // Calculate autocomplete suggestions
+        const catTitle = t(`sensory.categories.${category}.title`, { defaultValue: catConfig.title });
+        const catSubtitle = t(`sensory.categories.${category}.subtitle`, { defaultValue: catConfig.subtitle });
+        const catPlaceholder = t(`sensory.categories.${category}.placeholder`, { defaultValue: catConfig.placeholder });
+
+        // Calculate autocomplete suggestions using localized display and matching
         const trimmedQuery = currentInput.trim().toLowerCase();
         const existingNames = new Set(categoryDescriptors.map((d) => d.name.toLowerCase()));
 
-        const matchingPresets = catConfig.presetTags.filter(
-          (preset) =>
-            !existingNames.has(preset.toLowerCase()) &&
-            (trimmedQuery === '' || preset.toLowerCase().includes(trimmedQuery))
-        );
+        const matchingPresets = catConfig.presetTags
+          .map((preset) => translateSensoryTag(preset))
+          .filter(
+            (preset) =>
+              !existingNames.has(preset.toLowerCase()) &&
+              (trimmedQuery === '' || preset.toLowerCase().includes(trimmedQuery))
+          );
 
-        const hasExactMatch = categoryDescriptors.some(
-          (d) => d.name.toLowerCase() === trimmedQuery
-        ) || catConfig.presetTags.some(
-          (preset) => preset.toLowerCase() === trimmedQuery
-        );
+        const hasExactMatch =
+          categoryDescriptors.some((d) => d.name.toLowerCase() === trimmedQuery) ||
+          matchingPresets.some((preset) => preset.toLowerCase() === trimmedQuery);
 
         const showCustomOption = trimmedQuery.length > 0 && !hasExactMatch && !existingNames.has(trimmedQuery);
 
         return (
           <View
             key={category}
+            onLayout={(e) => onCategoryLayout?.(category, e.nativeEvent.layout.y)}
             style={[styles.categoryCard, { backgroundColor: colors.surfaceContainerLow }]}>
             {/* Category Header */}
             <View style={styles.categoryHeader}>
@@ -190,10 +206,10 @@ export function SensorySelector({ descriptors, onChange }: SensorySelectorProps)
                 <Text style={styles.categoryIcon}>{catConfig.icon}</Text>
                 <View>
                   <Text style={[styles.categoryTitle, { color: colors.primary }]}>
-                    {catConfig.title}
+                    {catTitle}
                   </Text>
                   <Text style={[styles.categorySubtitle, { color: colors.textSecondary }]}>
-                    {catConfig.subtitle}
+                    {catSubtitle}
                   </Text>
                 </View>
               </View>
@@ -205,7 +221,7 @@ export function SensorySelector({ descriptors, onChange }: SensorySelectorProps)
                     { backgroundColor: colors.surfaceContainerHighest },
                   ]}>
                   <Text style={[styles.countBadgeText, { color: colors.primary }]}>
-                    {categoryDescriptors.length} {categoryDescriptors.length === 1 ? 'tag' : 'tags'}
+                    {categoryDescriptors.length} {german ? (categoryDescriptors.length === 1 ? 'Eintrag' : 'Einträge') : (categoryDescriptors.length === 1 ? 'tag' : 'tags')}
                   </Text>
                 </View>
               )}
@@ -224,10 +240,14 @@ export function SensorySelector({ descriptors, onChange }: SensorySelectorProps)
                 <Text style={styles.inputSearchIcon}>🔍</Text>
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder={catConfig.placeholder}
+                  placeholder={catPlaceholder}
                   placeholderTextColor="rgba(85, 66, 67, 0.45)"
                   value={currentInput}
-                  onChangeText={(text) => handleInputChange(category, text)}
+                  onFocus={() => onInputActive?.(category)}
+                  onChangeText={(text) => {
+                    handleInputChange(category, text);
+                    onInputActive?.(category);
+                  }}
                   onSubmitEditing={() => {
                     if (currentInput.trim()) {
                       addTag(category, currentInput);
@@ -240,7 +260,7 @@ export function SensorySelector({ descriptors, onChange }: SensorySelectorProps)
                     onPress={() => addTag(category, currentInput)}
                     activeOpacity={0.7}
                     style={[styles.addBtn, { backgroundColor: colors.primaryContainer }]}>
-                    <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>+ Add</Text>
+                    <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>{t('sensory.add')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -249,7 +269,7 @@ export function SensorySelector({ descriptors, onChange }: SensorySelectorProps)
               {(currentInput.trim().length > 0 || categoryDescriptors.length === 0) && (
                 <View style={styles.suggestionsContainer}>
                   <Text style={[styles.suggestionsLabel, { color: colors.secondary }]}>
-                    {currentInput.trim().length > 0 ? 'Suggestions:' : 'Popular presets:'}
+                    {currentInput.trim().length > 0 ? (german ? 'Vorschläge:' : 'Suggestions:') : (german ? 'Beliebte Voreinstellungen:' : 'Popular presets:')}
                   </Text>
                   <View style={styles.suggestionsList}>
                     {showCustomOption && (
@@ -265,7 +285,7 @@ export function SensorySelector({ descriptors, onChange }: SensorySelectorProps)
                           },
                         ]}>
                         <Text style={[styles.suggestionChipText, { color: colors.onSecondaryFixed }]}>
-                          + Add custom &ldquo;{currentInput.trim()}&rdquo;
+                          + {german ? `Eigene(s) "${currentInput.trim()}" hinzufügen` : `Add custom "${currentInput.trim()}"`}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -293,7 +313,7 @@ export function SensorySelector({ descriptors, onChange }: SensorySelectorProps)
             {categoryDescriptors.length > 0 && (
               <View style={styles.tagsContainer}>
                 <Text style={[styles.tagsSectionLabel, { color: colors.textSecondary }]}>
-                  ADDED {category.toUpperCase()} DESCRIPTORS & INTENSITY:
+                  {german ? `HINZUGEFÜGTE ${catTitle.toUpperCase()}-EINDRÜCKE & INTENSITÄT:` : `ADDED ${category.toUpperCase()} DESCRIPTORS & INTENSITY:`}
                 </Text>
 
                 <View style={styles.tagsList}>
@@ -310,10 +330,10 @@ export function SensorySelector({ descriptors, onChange }: SensorySelectorProps)
                       {/* Tag Name & Category */}
                       <View style={styles.tagInfo}>
                         <Text style={[styles.tagName, { color: colors.text }]}>
-                          {desc.name}
+                          {translateSensoryTag(desc.name)}
                         </Text>
                         <Text style={[styles.intensitySummary, { color: colors.secondary }]}>
-                          Intensity: {desc.intensity}/5
+                          {t('sensory.intensityPrefix')} {desc.intensity}/5
                         </Text>
                       </View>
 

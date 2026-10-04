@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, useColorScheme } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
+import { translateScoreDescription } from '@/i18n';
 
 export const SCORE_DESCRIPTIONS: Record<number, string> = {
   1: '1.0 — Flawed / Undrinkable',
@@ -22,16 +24,17 @@ interface RatingSelectorProps {
 
 export function RatingSelector({ value, onChange }: RatingSelectorProps) {
   const scheme = useColorScheme();
+  const { t } = useTranslation();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
-  const descriptor = SCORE_DESCRIPTIONS[value] || `${value}.0`;
+  const descriptor = translateScoreDescription(value) || SCORE_DESCRIPTIONS[value] || `${value}.0`;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceContainerLow }]}>
       <View style={styles.headerRow}>
         <View style={styles.labelCol}>
           <Text style={[styles.subLabel, { color: colors.textSecondary }]}>
-            OVERALL APPRAISAL
+            {t('rating.overallAppraisal')}
           </Text>
           <Text style={[styles.descriptorText, { color: colors.primary }]}>
             {descriptor}
@@ -75,9 +78,9 @@ export function RatingSelector({ value, onChange }: RatingSelectorProps) {
 
       {/* Qualitative Micro-labels */}
       <View style={styles.microLabelsRow}>
-        <Text style={[styles.microLabel, { color: colors.textSecondary }]}>Sub-par</Text>
-        <Text style={[styles.microLabel, { color: colors.textSecondary }]}>Benchmark</Text>
-        <Text style={[styles.microLabel, { color: colors.textSecondary }]}>Masterwork</Text>
+        <Text style={[styles.microLabel, { color: colors.textSecondary }]}>{t('rating.subpar')}</Text>
+        <Text style={[styles.microLabel, { color: colors.textSecondary }]}>{t('rating.benchmark')}</Text>
+        <Text style={[styles.microLabel, { color: colors.textSecondary }]}>{t('rating.masterwork')}</Text>
       </View>
     </View>
   );

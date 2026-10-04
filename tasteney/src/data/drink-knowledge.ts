@@ -1,5 +1,14 @@
 import { BeverageArchetype } from '@/types/drink';
 
+const BEER_IMAGE = require('@/assets/images/drinks/beer.jpg');
+const WINE_IMAGE = require('@/assets/images/drinks/wine.jpg');
+const COFFEE_IMAGE = require('@/assets/images/drinks/coffee.jpg');
+const SPIRITS_IMAGE = require('@/assets/images/drinks/spirits.jpg');
+const TEA_IMAGE = require('@/assets/images/drinks/tea.jpg');
+const COCKTAIL_IMAGE = require('@/assets/images/drinks/cocktail.jpg');
+const SODA_IMAGE = require('@/assets/images/drinks/soda.jpg');
+const OTHER_IMAGE = require('@/assets/images/drinks/other.jpg');
+
 export interface DrinkStyle {
   name: string;
   description: string;
@@ -13,7 +22,7 @@ export interface DrinkCategoryKnowledge {
   title: string;
   icon: string;
   tagline: string;
-  bannerImage: string;
+  bannerImage: any;
   origin: {
     era: string;
     region: string;
@@ -39,15 +48,14 @@ export interface DrinkCategoryKnowledge {
   funFacts: string[];
 }
 
-export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
+export const DRINK_KNOWLEDGE_BASE_EN: DrinkCategoryKnowledge[] = [
   {
     id: 'beer',
     archetype: 'Beer',
     title: 'Beer & Ales',
     icon: '🍺',
     tagline: 'From Ancient Sumerian Bread-Beer to Modern Craft Innovations',
-    bannerImage:
-      'https://images.unsplash.com/photo-1535958636474-b021ee887b13?auto=format&fit=crop&w=1200&q=80',
+    bannerImage: BEER_IMAGE,
     origin: {
       era: 'c. 5000–4000 BCE (Neolithic & Bronze Age)',
       region: 'Mesopotamia (Fertile Crescent) and Ancient Egypt',
@@ -129,8 +137,7 @@ export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
     title: 'Wine & Viticulture',
     icon: '🍷',
     tagline: 'The Expression of Terroir, Ancient Grapes, and Slow Cellar Aging',
-    bannerImage:
-      'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1200&q=80',
+    bannerImage: WINE_IMAGE,
     origin: {
       era: 'c. 6000 BCE (Early Neolithic)',
       region: 'South Caucasus (Georgia / Armenia) & Zagros Mountains',
@@ -206,8 +213,7 @@ export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
     title: 'Specialty Coffee',
     icon: '☕',
     tagline: 'The Journey from Ethiopian Cloud Forests to Single-Origin Extractions',
-    bannerImage:
-      'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80',
+    bannerImage: COFFEE_IMAGE,
     origin: {
       era: 'c. 9th–15th Century CE',
       region: 'Kaffa / Ethiopian Highlands & Yemen (Mocha)',
@@ -279,8 +285,7 @@ export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
     title: 'Distilled Spirits',
     icon: '🥃',
     tagline: 'The Alchemy of Distillation, Oak Maturation, and Botanicals',
-    bannerImage:
-      'https://images.unsplash.com/photo-1527281400683-1aae777175f8?auto=format&fit=crop&w=1200&q=80',
+    bannerImage: SPIRITS_IMAGE,
     origin: {
       era: 'c. 1st–12th Century CE',
       region: 'Hellenistic Egypt (Alexandria) & Medieval Salerno / Arab world',
@@ -319,74 +324,78 @@ export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
         flavorNotes: ['Cooked Agave', 'Smoky Earth', 'White Pepper', 'Citrus Peel'],
       },
       {
-        name: 'London Dry & Botanical Gin',
-        description: 'Neutral grain spirit redistilled with juniper berries, coriander, citrus peel, and botanical roots.',
+        name: 'London Dry & Contemporary Gin',
+        description: 'Neutral grain spirit redistilled with juniper berries, coriander seeds, and citrus peel botanicals.',
         abv: '40% - 47%',
-        flavorNotes: ['Piney Juniper', 'Coriander Seed', 'Orris Root', 'Lemon Verbena'],
+        flavorNotes: ['Pine Juniper', 'Coriander', 'Lemon Zest', 'Angelica Root'],
       },
       {
-        name: 'Aged Rum & Cachaça',
-        description: 'Crafted from pure sugarcane juice or dark blackstrap molasses in tropical coastal climates.',
-        abv: '40% - 55%',
-        flavorNotes: ['Toffee', 'Banana Flambé', 'Nutmeg', 'Tobacco'],
+        name: 'Cognac & Aged Brandies',
+        description: 'Double-distilled white wine from Charente aged for years in Limousin French oak barrels.',
+        abv: '40% - 45%',
+        flavorNotes: ['Dried Apricot', 'Leather', 'Nutmeg', 'Rancio'],
       },
     ],
     sensoryProfile: {
-      keyAromas: ['Wood Vanillins & Lactones', 'Ester Fruits', 'Peat & Campfire Smoke', 'Baking Spice', 'Botanical Herbs'],
+      keyAromas: ['Oak Vanillin', 'Grain / Malt', 'Peat & Smoke', 'Botanical Herbs', 'Dried Fruit & Raisin'],
       flavorCharacteristics:
-        'Intensity, alcoholic warmth (without excessive burn), viscosity/mouth-coating oils, and lengthy lingering finish.',
+        'Distinguished by alcohol warmth, viscous oily mouthfeel, oak complexity, and long resonant finish.',
       tastingTechnique:
-        'Do not plunge your nose directly into high-proof spirit! Hold the glass 2 inches away with lips slightly parted to avoid burning your olfactory nerve.',
+        'Never stick your nose directly in high-proof spirit. Keep your mouth slightly open while nosing, and add a few drops of water to open the bouquet.',
     },
     serving: {
-      idealTemperature: 'Neat: 18°C – 20°C (Room Temp); On the rocks: with a large, slow-melting dense ice sphere',
-      glassware: ['Glencairn Glass (Tasting & nosing)', 'Rocks / Old Fashioned Glass', 'Copita / Snifter'],
+      idealTemperature: 'Neat at room temperature: 16°C – 20°C; Gin/Vodka chilled or in mixed drinks',
+      glassware: ['Glencairn / Nosing Glass (Whisky & Cognac)', 'Rocks / Lowball Glass (On the rocks)', 'Copita Glass'],
       proTips:
-        'Adding 3 to 4 drops of room-temperature spring water breaks the surface tension and unlocks hidden hydrophobic aroma molecules.',
+        'Adding 2-3 drops of room-temperature spring water reduces alcohol burn and releases trapped aromatic fatty-acid esters.',
     },
     funFacts: [
-      'By law, 100% Bourbon whiskey must be aged in brand new, charred American white oak containers—it can never be reused for Bourbon.',
-      'Historically, British Royal Navy sailors tested gunpowder strength by soaking it in rum—if it still ignited, the rum was "100 Proof" (57.1% ABV).',
-      'True Mezcal must be made from mature agave plants that can take anywhere from 7 to 30 years to reach harvest size.',
+      'Bourbon must legally be aged in brand new, charred oak barrels—distillers can never reuse them for Bourbon.',
+      'Scotland has more barrels of aging whisky maturing in bonded warehouses than human residents.',
+      'Gin must legally possess a predominant flavor of juniper berries to be categorized as gin.',
     ],
   },
   {
     id: 'tea',
     archetype: 'Tea',
-    title: 'Tea & Camellia Cultivation',
+    title: 'Artisanal Tea',
     icon: '🍵',
-    tagline: 'Ancient Eastern Ceremonies, Terroir Leaves, and Oxidation Craft',
-    bannerImage:
-      'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=1200&q=80',
+    tagline: 'From Ancient Yunnan Cloud Trees to Gongfu Ceremony Steepings',
+    bannerImage: TEA_IMAGE,
     origin: {
-      era: 'c. 2737 BCE (Mythological) / 2nd Century BCE',
-      region: 'Ancient China (Yunnan / Sichuan Provinces)',
+      era: 'c. 2737 BCE (Mythological) / Shang Dynasty',
+      region: 'Southwest China (Yunnan / Sichuan border)',
       history:
-        'According to Chinese mythology, Emperor Shennong was resting under a wild Camellia sinensis tree when windblown leaves drifted into his boiling water cauldron, infusing a fragrant herbal tonic. In the Tang Dynasty, Lu Yu penned "The Classic of Tea" (Cha Jing), codifying the art of tea brewing into a spiritual and philosophical practice. Japanese monks like Eisai brought Zen tea seeds to Kyoto, founding the Chanoyu tea ceremony. Later maritime trade brought tea to Europe and spurred the British afternoon tea tradition.',
+        'According to Chinese mythology, Emperor Shennong was boiling drinking water beneath a Camellia sinensis tree when wind-blown leaves drifted into his pot. In ancient China, tea was initially consumed as medicine and savory herbal broth before the Tang Dynasty transformed it into an exquisite cultural art form, codified in Lu Yu’s "The Classic of Tea" (Cha Jing). Zen Buddhist monks introduced tea to Japan as an aid for meditation, birthing the revered Chanoyu tea ceremony.',
       milestones: [
-        { year: '2737 BCE', event: 'Emperor Shennong discovers tea leaves falling into boiling water.' },
-        { year: '760 CE', event: 'Lu Yu writes the Cha Jing (Classic of Tea), the first monograph on tea culture.' },
-        { year: '1191 CE', event: 'Zen Master Eisai introduces stone-ground Matcha tea from China to Japan.' },
-        { year: '1848 CE', event: 'Botanist Robert Fortune transports Chinese tea cuttings and secrets to British India (Darjeeling).' },
+        { year: '2737 BCE', event: 'Emperor Shennong discovers tea when leaves fall into boiling water.' },
+        { year: 'c. 760 CE', event: 'Lu Yu writes the "Cha Jing" (The Classic of Tea), the first definitive book on tea culture.' },
+        { year: '1610 CE', event: 'Dutch East India Company imports the first commercial tea chests into Europe.' },
+        { year: '1848 CE', event: 'Robert Fortune smuggles tea plants and knowledge out of China into Darjeeling, India.' },
       ],
     },
     production: {
-      ingredients: ['Camellia sinensis leaves (Sinensis & Assamica varieties)', 'Pure Spring Water'],
+      ingredients: ['Camellia sinensis leaf buds (sinensis or assamica cultivars)', 'Soft, pure spring water'],
       steps: [
-        { name: '1. Plucking', description: 'Careful hand-picking of the top terminal bud and two tender young leaves (Two Leaves & a Bud).' },
-        { name: '2. Withering', description: 'Leaves are laid on bamboo trays to reduce moisture and make leaves pliable.' },
-        { name: '3. Rolling & Bruising', description: 'Cell walls are cracked to initiate enzymatic polyphenol oxidation.' },
-        { name: '4. Kill-Green (Shaqing)', description: 'Heat application (pan-firing or steam) stops enzymatic oxidation at the desired stage.' },
-        { name: '5. Drying & Shaping', description: 'Leaves are shaped into pearls, twists, or needles and dried for longevity.' },
+        { name: '1. Selective Plucking', description: 'Hand-plucking top two leaves and an unopened bud ("two leaves and a bud").' },
+        { name: '2. Withering', description: 'Leaves are laid out on bamboo trays to evaporate moisture and become pliable.' },
+        { name: '3. Rolling / Bruising', description: 'Twisting and tumbling ruptures cell walls to release enzymes and essential oils.' },
+        { name: '4. Oxidation Control', description: 'Green tea (0% oxidation - heat kill / fix), Oolong (20-80%), Black tea (100% full oxidation).' },
+        { name: '5. Final Drying / Firing', description: 'Baking halts enzyme activity and stabilizes moisture below 3% for storage.' },
       ],
       craftTrivia:
-        'White, Green, Yellow, Oolong, Black, and Pu-erh teas all come from the exact same plant species (Camellia sinensis)—the only difference is processing and oxidation degree.',
+        'All true teas (White, Green, Yellow, Oolong, Black, Pu-erh) originate from the exact same botanical plant species: Camellia sinensis.',
     },
     styles: [
       {
         name: 'Green & Matcha (Unoxidized: 0%)',
-        description: 'Steamed or pan-fired immediately; vibrant vegetal, grassy, umami, and sweet seaweed character.',
-        flavorNotes: ['Sweet Grass', 'Steamed Spinach', 'Marine Umami', 'Chestnut'],
+        description: 'Steamed or pan-fired to retain vibrant chlorophyll, high catechins, and sweet grassy umami.',
+        flavorNotes: ['Steamed Spinach', 'Fresh Grass', 'Sweet Umami', 'Chestnut'],
+      },
+      {
+        name: 'White Tea (Minimal Process)',
+        description: 'Sun-withered tender silver buds; delicate, airy, floral, with high natural antioxidants.',
+        flavorNotes: ['Melon', 'White Peach', 'Dry Hay', 'Wild Honey'],
       },
       {
         name: 'Oolong (Semi-Oxidized: 20-80%)',
@@ -429,8 +438,7 @@ export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
     title: 'The Art of Mixology',
     icon: '🍸',
     tagline: 'Balance, Bitters, Ice Dynamics, and the Golden Ratios',
-    bannerImage:
-      'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1200&q=80',
+    bannerImage: COCKTAIL_IMAGE,
     origin: {
       era: 'c. 1806 / Mid-19th Century',
       region: 'United States (New York & New Orleans)',
@@ -502,8 +510,7 @@ export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
     title: 'Sodas, Tonics & Botanicals',
     icon: '🫧',
     tagline: 'Carbonation Chemistry, Quinine Roots, and Artisanal Mixers',
-    bannerImage:
-      'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=1200&q=80',
+    bannerImage: SODA_IMAGE,
     origin: {
       era: 'c. 1767–1850s CE',
       region: 'England, Switzerland & British Colonial India',
@@ -575,8 +582,7 @@ export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
     title: 'Heritage & Specialty Ferments',
     icon: '✨',
     tagline: 'Mead, Cider, Sake, and Ancient Botanical Potions',
-    bannerImage:
-      'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?auto=format&fit=crop&w=1200&q=80',
+    bannerImage: OTHER_IMAGE,
     origin: {
       era: 'c. 7000 BCE – Present',
       region: 'Global: Scandinavia, Japan, Normandy, Caucasus',
@@ -599,7 +605,7 @@ export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
         { name: '5. Blending & Finishing', description: 'Balancing residual sweetness, tart malic/lactic acidity, and natural effervescence.' },
       ],
       craftTrivia:
-        'Sake brewing is neither wine nor beer—its unique simultaneous saccharification and fermentation can achieve over 20% natural ABV without distillation.',
+        'Sake brewing is neither wine nor beer��its unique simultaneous saccharification and fermentation can achieve over 20% natural ABV without distillation.',
     },
     styles: [
       {
@@ -618,32 +624,650 @@ export const DRINK_KNOWLEDGE_BASE: DrinkCategoryKnowledge[] = [
         name: 'Junmai Daiginjo Sake',
         description: 'Super-premium sake with rice polished to 50% or less, delivering ethereal aromas of melon, lychee, and clean water.',
         abv: '14% - 16%',
-        flavorNotes: ['Honeydew Melon', 'White Jasmine', 'Anise', 'Silky Rice Umami'],
+        flavorNotes: ['Honeydew Melon', 'Lychee', 'White Peach', 'Spring Water'],
       },
       {
-        name: 'Raw Kombucha & Jun',
-        description: 'Effervescent fermented sweetened tea fermented with a symbiotic culture of bacteria and yeast (SCOBY).',
-        abv: '< 0.5% (Non-alcoholic)',
-        flavorNotes: ['Tart Acetic / Gluconic Acid', 'Green Tea', 'Raw Ginger', 'Probiotic Crispness'],
+        name: 'Raw Living Kombucha',
+        description: 'Effervescent fermented sweet tea cultured with a SCOBY, packed with crisp acetic tang and living probiotics.',
+        abv: '0.5% - 1.5%',
+        flavorNotes: ['Tart Apple Vinegar', 'Green Apple', 'Lemon Zest', 'Fresh Ginger'],
       },
     ],
     sensoryProfile: {
-      keyAromas: ['Honey & Floral Blossom', 'Crisp Tannic Orchard Fruits', 'Rice Koji Umami', 'Subtle Ferment Funk'],
+      keyAromas: ['Wild Blossom Honey', 'Rustic Apple Tannin', 'Melon & Rice Esters', 'Crisp Tangy Ferment'],
       flavorCharacteristics:
-        'A spectrum from luscious honeyed richness to bracing orchard tartness and silky rice smooth umami.',
+        'An expansive range balancing unrefined natural sugars, farm-fresh fruit acidity, earthy wild funk, and live effervescence.',
       tastingTechnique:
-        'Savor the delicate balance between natural unfermented sugars, crisp organic acids, and complex yeast/microbial fermentation depth.',
+        'Swirl in a white wine glass to observe natural unfiltered sediment or crystalline clarity. Sip slowly to assess balance of honey/fruit sweetness against crisp tart acidity.',
     },
     serving: {
-      idealTemperature: 'Cider & Kombucha: 4°C – 8°C; Mead: 10°C – 14°C; Premium Sake: 10°C – 12°C or gently warmed (Atsukan) for rustic styles',
-      glassware: ['Ochoko & Tokkuri / Wine Glass (Sake)', 'Cider Goblet / Flute', 'Snifter (Mead)'],
+      idealTemperature: 'Cider & Kombucha: 4°C – 6°C; Daiginjo Sake: 8°C – 10°C; Mead: 10°C – 14°C',
+      glassware: ['White Wine Stem', 'Ochoko Ceramic Cup (Sake)', 'Traditional Horn / Goblet (Mead)'],
       proTips:
-        'Drink premium Daiginjo sake in a standard white wine glass rather than a small shot cup to capture its delicate floral aroma bouquet.',
+        'Treat heritage cider like fine white wine: serve in stemmed glassware at cellar temp to allow complex terroir and rustic tannins to breathe.',
     },
     funFacts: [
-      'The word "honeymoon" comes from the ancient Norse and European tradition of gifting newlywed couples a full month’s supply of mead for fertility and good luck.',
-      'In 18th-century Normandy and England, farm laborers were partially paid their wages in barrels of fresh farm cider.',
-      'Koji mold (Aspergillus oryzae) is so essential to Japanese culinary culture (sake, soy sauce, miso) that it is officially designated Japan’s "National Fungus".',
+      'The term "honeymoon" originated from the ancient tradition where newlyweds drank mead daily for one full moon cycle to ensure fertility and happiness.',
+      'Normandy cider orchards cultivate over 700 distinct heritage apple varieties specifically bred for cider production.',
+      'To brew Junmai Daiginjo sake, master brewers often mill rice kernels for over 50 hours continuously to remove protein-rich outer layers.',
     ],
   },
 ];
+
+export const DRINK_KNOWLEDGE_BASE_DE: DrinkCategoryKnowledge[] = [
+  {
+    id: 'beer',
+    archetype: 'Beer',
+    title: 'Bier & Braukunst',
+    icon: '🍺',
+    tagline: 'Vom antiken sumerischen Fladenbrot-Bier bis zur modernen Craft-Bier-Bewegung',
+    bannerImage: BEER_IMAGE,
+    origin: {
+      era: 'ca. 5000–4000 v. Chr. (Jungsteinzeit & Bronzezeit)',
+      region: 'Mesopotamien (Fruchtbarer Halbmond) & Altes Ägypten',
+      history:
+        'Bier zählt zu den ältesten zubereiteten Getränken der Menschheit. Bereits frühe Jäger und Sammler sowie die Sumerer entdeckten, dass eingeweichte Getreidekörner auf natürliche Weise zu einer berauschenden, nahrhaften Flüssigkeit namens "Sikaru" vergoren. Bier galt als heilige Gabe der Göttin Ninkasi. Im mittelalterlichen Europa verlagerte sich das Brauwesen in christliche Klöster, wo Mönche Hopfen zur Konservierung und Geschmacksharmonisierung einführten – was 1516 zum berühmten bayerischen Reinheitsgebot führte.',
+      milestones: [
+        { year: '4000 v. Chr.', event: 'Sumerer verfassen die Ninkasi-Hymne mit dem ältesten überlieferten Bierrezept.' },
+        { year: '1516 n. Chr.', event: 'In Bayern wird das Reinheitsgebot erlassen (nur Wasser, Gerste und Hopfen).' },
+        { year: '1842 n. Chr.', event: 'Josef Groll braut im böhmischen Pilsen das erste goldene Pilsner Lager.' },
+        { year: '1970er–heute', event: 'Die Craft-Beer-Revolution revitalisiert IPAs, holzfassgereifte Sauerbiere und Mikrobrauereien.' },
+      ],
+    },
+    production: {
+      ingredients: ['Wasser (90–95 %)', 'Braumalz (Gerste, Weizen, Hafer, Roggen)', 'Hopfen (Humulus lupulus)', 'Hefe (Saccharomyces cerevisiae / pastorianus)'],
+      steps: [
+        { name: '1. Mälzen', description: 'Getreide wird eingeweicht, zum Keimen gebracht, um Enzyme zu aktivieren, und anschließend gedarrt/geröstet.' },
+        { name: '2. Maischen', description: 'Geschrotetes Malz wird mit heißem Wasser vermengt, um Stärke in vergärbaren Zucker (Würze) umzuwandeln.' },
+        { name: '3. Kochen & Hopfung', description: 'Die Würze wird gekocht; Hopfen wird für Bitterkeit, Aroma und ätherische Öle zugegeben.' },
+        { name: '4. Gärung', description: 'Hefe wandelt Zucker in Alkohol und Kohlensäure um (obergärige Ales vs. untergärige Lager).' },
+        { name: '5. Reifung & Lagerung', description: 'Das Bier reift, wird geklärt oder kaltgehopft und karbonisiert.' },
+      ],
+      craftTrivia:
+        'Hopfen ist botanisch mit Hanf verwandt und wurde ursprünglich genutzt, weil seine Alphawürzsäuren antibakteriell vor Verderb schützen.',
+    },
+    styles: [
+      {
+        name: 'Pils & Helles Lager',
+        description: 'Knackig-frische, goldene Biere, kalt vergoren mit feiner Hopfenblume.',
+        abv: '4,2 % - 5,4 %',
+        flavorNotes: ['Keksiges Malz', 'Floraler Hopfen', 'Klarer herber Abgang'],
+      },
+      {
+        name: 'India Pale Ale (IPA)',
+        description: 'Hopfenbetonte Ales mit Aromen von Zitrus, Kiefernharz, Tropenfrüchten und markanter Bittere.',
+        abv: '5,5 % - 7,5 %',
+        flavorNotes: ['Grapefruit', 'Kiefernharz', 'Mango', 'Würzige Kräuter'],
+      },
+      {
+        name: 'Stout & Porter',
+        description: 'Dunkle, blickdichte Biere mit Röstmalzen, die reichhaltige Noten von Schokolade und Espresso hervorbringen.',
+        abv: '5,0 % - 10,0 %',
+        flavorNotes: ['Dunkle Schokolade', 'Espresso', 'Melasse', 'Gerösteter Hafer'],
+      },
+      {
+        name: 'Weizenbier / Hefeweizen',
+        description: 'Unfiltrierte, naturtrübe Biere mit typischen Hefe-Estern, die Aromen von Banane und Nelke erzeugen.',
+        abv: '4,5 % - 5,5 %',
+        flavorNotes: ['Reife Banane', 'Gewürznelke', 'Frisches Brot', 'Zitrusabrieb'],
+      },
+      {
+        name: 'Sauerbier & Wild Ales',
+        description: 'Vergoren mit Brettanomyces und Milchsäurebakterien für komplexe Säure, Fruchtigkeit und Funk.',
+        abv: '4,0 % - 8,0 %',
+        flavorNotes: ['Sauerkirsche', 'Funk', 'Zitronenschale', 'Eichenholz'],
+      },
+    ],
+    sensoryProfile: {
+      keyAromas: ['Zitrus- & Tropenhopfen', 'Karamell- & Biskuitmalz', 'Röstkaffee', 'Fruchtige Hefe-Ester', 'Kiefer & Harz'],
+      flavorCharacteristics:
+        'Ein dynamisches Spektrum im Gleichgewicht aus Malzsüße, Hopfenbittere, feinperligem Prickeln und sauberer Frische.',
+      tastingTechnique:
+        '1. Farbe und Schaumkrone betrachten. 2. Glas schwenken und zweimal kurz riechen. 3. Schlucken und den gesamten Gaumen benetzen. 4. Retronasal ausatmen für das Hopfenfinale.',
+    },
+    serving: {
+      idealTemperature: '4 °C – 7 °C für helle Lager; 8 °C – 12 °C für IPAs & Ales; 12 °C – 15 °C für Imperial Stouts',
+      glassware: ['Tulpe / Snifter (IPAs & Starkbiere)', 'Pilsstange / Flöte (Lager)', 'Nonic Pint (Stouts & Bitters)', 'Weizenglas (Weizenbier)'],
+      proTips:
+        'Gläser vor dem Einschenken immer kalt mit klarem Wasser ausspülen, um Spülmittelreste zu entfernen, die die Schaumkrone zerstören.',
+    },
+    funFacts: [
+      'Im antiken Babylon galt das Brauen als heilig. Verwässertes Bier konnte nach dem Codex Hammurapi mit dem Tode bestraft werden.',
+      'Im Mittelalter war Bier oft sicherer zu trinken als Brunnenwasser, weil das Kochen der Würze Keime abtötete.',
+      'Cenosillicaphobie bezeichnet die tatsächliche Angst vor einem leeren Bierglas.',
+    ],
+  },
+  {
+    id: 'wine',
+    archetype: 'Wine',
+    title: 'Wein & Weinbau',
+    icon: '🍷',
+    tagline: 'Der Ausdruck von Terroir, uralten Rebsorten und meisterhafter Kellerreifung',
+    bannerImage: WINE_IMAGE,
+    origin: {
+      era: 'ca. 6000 v. Chr. (Frühes Neolithikum)',
+      region: 'Südkaukasus (Georgien / Armenien) & Zagros-Gebirge',
+      history:
+        'Chemische Rückstände in georgischen Tonamphoren (Kwewri) belegen, dass Menschen bereits vor über 8.000 Jahren Trauben der Edlen Weinrebe vergoren. Phönizische Händler verbreiteten den Weinbau im Mittelmeerraum. Die Römer erhoben ihn zur Wissenschaft, erfanden das Holzfass und legten Weinberge in Bordeaux, Burgund und an der Mosel an. Bis heute gilt das Zusammenspiel aus Boden, Klima, Hanglage und Tradition als das Herzstück des Terroirs.',
+      milestones: [
+        { year: '6000 v. Chr.', event: 'Georgische Winzer vergären Trauben in im Boden vergrabenen Tonamphoren (Kwewri).' },
+        { year: '4100 v. Chr.', event: 'In der Höhle Areni-1 in Armenien wird die älteste vollständig erhaltene Weinkellerei entdeckt.' },
+        { year: '1855 n. Chr.', event: 'Kaiser Napoleon III. führt die offizielle Bordeaux-Klassifizierung ein.' },
+        { year: '1976 n. Chr.', event: 'Die Weinjury von Paris katapultiert Weine aus Übersee (Kalifornien) auf die globale Weltbühne.' },
+      ],
+    },
+    production: {
+      ingredients: ['Weintrauben (Vitis vinifera)', 'Reinzucht- oder Wildhefen', 'Sulfite (zur Stabilisierung)'],
+      steps: [
+        { name: '1. Lese & Selektion', description: 'Trauben werden im optimalen Zucker-Säure-Gleichgewicht geerntet.' },
+        { name: '2. Maischung & Pressung', description: 'Rotweine gären auf der Maische für Farbe und Tannine; Weißweine werden rasch gepresst.' },
+        { name: '3. Gärung', description: 'Hefen wandeln Traubenzucker in Alkohol und feine Aromen um.' },
+        { name: '4. Ausbau & Malolaktische Gärung', description: 'Reifung in Holzfässern (Barrique) oder Edelstahltanks zur Harmonisierung der Säure.' },
+        { name: '5. Klärung & Abfüllung', description: 'Schonende Filtration vor der Flaschenfüllung und weiteren Flaschenreife.' },
+      ],
+      craftTrivia:
+        'Weißwein kann auch aus roten Trauben gekeltert werden, wenn der Saft sofort und ohne Schalenkontakt abgepresst wird (Blanc de Noirs).',
+    },
+    styles: [
+      {
+        name: 'Kräftige Rotweine (Cabernet, Syrah)',
+        description: 'Tiefes Rubinrot, präsentes Tannin, dichte Struktur mit Cassis, Zeder und Leder.',
+        abv: '13,5 % - 15,0 %',
+        flavorNotes: ['Brombeere', 'Cassis', 'Tabak', 'Vanilleholz'],
+      },
+      {
+        name: 'Frische & mineralische Weißweine (Riesling, Sauvignon)',
+        description: 'Lebendige Säure, feine Mineralik und knackige Fruchtspannung.',
+        abv: '11,0 % - 13,5 %',
+        flavorNotes: ['Grüner Apfel', 'Zitronenabrieb', 'Feuerstein', 'Holunderblüte'],
+      },
+      {
+        name: 'Schaumweine (Champagner, Winzersekt, Cava)',
+        description: 'Zweite Gärung sorgt für feinperliges Mousseux und hefige Briochenoten.',
+        abv: '11,5 % - 12,5 %',
+        flavorNotes: ['Brioche', 'Grüne Birne', 'Geröstete Mandel', 'Kalkige Zitrusnoten'],
+      },
+      {
+        name: 'Elegante Rotweine (Spätburgunder / Pinot Noir, Nebbiolo)',
+        description: 'Transparente Farbe, samtige Textur und vielschichtige Wald- und Beerenaromen.',
+        abv: '12,5 % - 14,0 %',
+        flavorNotes: ['Sauerkirsche', 'Rosenblätter', 'Trüffel', 'Waldboden'],
+      },
+    ],
+    sensoryProfile: {
+      keyAromas: ['Primärfrucht (Beeren, Zitrus)', 'Sekundärnoten (Eichenholz, Vanille)', 'Tertiäraromen (Leder, Trüffel, Unterholz)'],
+      flavorCharacteristics:
+        'Bewertet nach den 5 Säulen: Süße, Säure, Tanninstruktur, Alkoholwärme und Körper.',
+      tastingTechnique:
+        'Die 5 Schritte: Sehen (Farbe & Viskosität), Schwenken (Aromafreisetzung), Riechen, Schmecken (im Mund bewegen) und Nachhall prüfen.',
+    },
+    serving: {
+      idealTemperature: 'Weiß- & Schaumweine: 6 °C – 10 °C; Leichte Rotweine: 12 °C – 15 °C; Kräftige Rotweine: 16 °C – 18 °C',
+      glassware: ['Bordeaux-Glas (großer Kelch)', 'Burgunder-Ballon', 'Weißweinglas', 'Tulpenglas (Schaumwein)'],
+      proTips:
+        'Junge, tanninreiche Rotweine 30–60 Minuten vor dem Genuss dekantieren, damit Sauerstoff die Tannine abrundet.',
+    },
+    funFacts: [
+      'In einer Standardflasche Wein stecken ca. 600 bis 800 einzelne Weintrauben.',
+      'Der Flaschenboden-Einstich (Culot) verlieh mundgeblasenen Glasflaschen historisch Stabilität.',
+      'Im antiken Rom mischte man eingedickten Traubensirup und Meerwasser in den Wein.',
+    ],
+  },
+  {
+    id: 'coffee',
+    archetype: 'Coffee',
+    title: 'Spezialitätenkaffee',
+    icon: '☕',
+    tagline: 'Von den äthiopischen Nebelwäldern bis zur Single-Origin-Filterextraktion',
+    bannerImage: COFFEE_IMAGE,
+    origin: {
+      era: 'ca. 9.–15. Jahrhundert n. Chr.',
+      region: 'Kaffa / Äthiopisches Hochland & Jemen (Mokka)',
+      history:
+        'Der Legende nach bemerkte der äthiopische Ziegenhirte Kaldi, wie seine Herde nach dem Verzehr roter Kaffeekirschen voller Energie herumsprang. Im 15. Jahrhundert kultivierten Sufi-Mönche im Jemen Kaffeesträucher, um bei nächtlichen Gebeten wach zu bleiben. Kaffeehäuser in Istanbul, Kairo, Venedig und London entwickelten sich zu Zentren des Austauschs, der Wissenschaft und Aufklärung.',
+      milestones: [
+        { year: 'ca. 850 n. Chr.', event: 'Kaldi entdeckt in Äthiopien die belebende Wirkung der Coffea-Arabica-Pflanze.' },
+        { year: '1555 n. Chr.', event: 'In Konstantinopel (Istanbul) eröffnet das erste überlieferte Kaffeehaus.' },
+        { year: '1901 n. Chr.', event: 'Luigi Bezzera patentiert in Mailand die erste kommerzielle Espressomaschine.' },
+        { year: '2000er–heute', event: 'Die Third-Wave-Bewegung zelebriert Kaffee als handwerkliches Agrarprodukt mit Terroir.' },
+      ],
+    },
+    production: {
+      ingredients: ['100 % Arabica- oder Robusta-Rohkaffeebohnen', 'Gefiltertes Wasser (idealerweise 50–150 ppm Mineralien)'],
+      steps: [
+        { name: '1. Ernte der Kaffeekirschen', description: 'Selektives Pflücken reifer Kirschen im Hochland (1.200 m – 2.200 m ü. M.).' },
+        { name: '2. Aufbereitung', description: 'Washed (klare Säure), Natural/Trocken (ausgeprägte Fruchtsüße) oder Honey.' },
+        { name: '3. Röstprofil', description: 'Gezielte Röstung steuert Maillard-Reaktion und Karamellisierung (Hell, Mittel, Dunkel).' },
+        { name: '4. Präzisionsmahlung', description: 'Scheiben- oder Kegelmahlwerke für gleichmäßige Korngröße passend zur Brühmethode.' },
+        { name: '5. Kontrollierte Extraktion', description: 'Wasser zwischen 90 °C–96 °C löst wertvolle Aromastoffe (18–22 % Extraktionsausbeute).' },
+      ],
+      craftTrivia:
+        'Kaffeebohnen sind biologisch gar keine Bohnen, sondern die paarigen Samen im Inneren der süßen Kaffeekirsche.',
+    },
+    styles: [
+      {
+        name: 'Single Origin Pour Over (V60 / Chemex)',
+        description: 'Feine Filterextraktion mit floraler Klarheit und eleganter Fruchtnote.',
+        flavorNotes: ['Jasmin', 'Bergamotte', 'Pfirsich', 'Zitrone'],
+      },
+      {
+        name: 'Espresso (9 Bar Druck)',
+        description: 'Konzentrierte 25–30 Sekunden Extraktion mit dichter Crema und intensiver Aromadichte.',
+        flavorNotes: ['Dunkler Kakao', 'Geröstete Haselnuss', 'Schwarzkirsche', 'Melasse'],
+      },
+      {
+        name: 'Cold Brew',
+        description: 'Grobes Kaffeemehl zieht 16–24 Stunden in kaltem Wasser für milde, säurearme Schokoladensüße.',
+        flavorNotes: ['Brauner Zucker', 'Vollmilchschokolade', 'Feige', 'Vanille'],
+      },
+      {
+        name: 'Flat White & Cortado',
+        description: 'Seidiger Mikroschaum, harmonisch eingegossen in Espresso ohne das Terroir zu überdecken.',
+        flavorNotes: ['Karamellcreme', 'Buttertoffee', 'Süße Praline'],
+      },
+    ],
+    sensoryProfile: {
+      keyAromas: ['Blumig & Kräuterig', 'Zitrus- & Beerensäure', 'Steinobst', 'Schokolade & Nuss', 'Würzige Röstnoten'],
+      flavorCharacteristics:
+        'Professionelles Cupping bewertet Duft/Aroma, Säurebrillanz, Körper/Mundgefühl, Balance und Reinheit.',
+      tastingTechnique:
+        'Kaffee laut und schwungvoll vom Cupping-Löffel schlürfen, um ihn fein im Mundraum und Rachen zu vernebeln.',
+    },
+    serving: {
+      idealTemperature: 'Brühwasser: 92 °C – 96 °C; Trinktemperatur: 55 °C – 65 °C (Aromen entfalten sich beim Abkühlen)',
+      glassware: ['Keramik-Tasse (Espresso)', 'Doppelwandiges Glas (Filterkaffee)', 'Tumbler (Cortado)'],
+      proTips:
+        'Immer erst direkt vor dem Brühen mahlen. Gemahlener Kaffee verliert innerhalb von 15 Minuten bis zu 60 % seiner flüchtigen Aromen.',
+    },
+    funFacts: [
+      'Arabica-Kaffee besitzt 44 Chromosomen für komplexe Aromen, während Robusta 22 besitzt und doppelt so viel Koffein enthält.',
+      'Kaffee ist nach Erdöl eines der meistgehandelten Rohgüter der Welt.',
+      'König Karl II. von England versuchte im 17. Jahrhundert Kaffeehäuser als Horte rebellischer Verschwörungen zu verbieten.',
+    ],
+  },
+  {
+    id: 'spirits',
+    archetype: 'Spirits',
+    title: 'Edle Spirituosen & Destillate',
+    icon: '🥃',
+    tagline: 'Die Alchemie der Destillation, Holzfassreifung und Botanicals',
+    bannerImage: SPIRITS_IMAGE,
+    origin: {
+      era: 'ca. 1.–12. Jahrhundert n. Chr.',
+      region: 'Hellenistisches Ägypten (Alexandria) & Arabische Welt / Salerno',
+      history:
+        'Die Destillationskunst wurde von Alchemisten in Alexandria erfunden, die den Alambic-Brennkolben entwickelten. Islamische Gelehrte verfeinerten die Technik, die später über italienische Klosterschulen nach Europa gelangte. Das hochprozentige Destillat wurde als "Aqua Vitae" (Lebenswasser) oder gälisch "Uisce Beatha" (woraus "Whisky" entstand) bezeichnet. Ursprünglich als Medizin geschätzt, entstanden daraus regionale Meisterwerke: Scotch, Bourbon, Cognac, Gin und Agavenbrände.',
+      milestones: [
+        { year: '800 n. Chr.', event: 'Der Alchemist Dschābir ibn Hayyān verbessert den Alambic-Destillierkolben.' },
+        { year: '1494 n. Chr.', event: 'Erste urkundliche Erwähnung von schottischem Whisky ("Aquavitae").' },
+        { year: '1789 n. Chr.', event: 'In Kentucky beginnt die Bourbon-Tradition in ausgekohlten Fässern aus amerikanischer Weißeiche.' },
+        { year: '1830 n. Chr.', event: 'Aeneas Coffey erfindet die kontinuierliche Kolonnendestillation.' },
+      ],
+    },
+    production: {
+      ingredients: ['Vergorene Maische (Getreide, Trauben, Zuckerrohr, Agave, Kartoffeln)', 'Kupferbrennblasen oder Kolonnen', 'Eichenholzfässer'],
+      steps: [
+        { name: '1. Maischegärung', description: 'Hefen vergären den zuckerhaltigen Rohstoff zu einer Maische mit 6–10 % vol.' },
+        { name: '2. Destillation', description: 'Erhitzter Alkohol verdampft bei 78,3 °C vor dem Wasser und kondensiert wieder.' },
+        { name: '3. Abtrennung (Herzstück)', description: 'Vorlauf (Methanol) und Nachlauf (Fusillöle) werden abgetrennt; nur das reine Herzstück wird verwendet.' },
+        { name: '4. Fasslagerung', description: 'Jahre im getoasteten Holzfass schenken Vanillin, Tannine und goldene Bernsteinfarbe.' },
+        { name: '5. Vermählung & Herabsetzen', description: 'Verdünnung mit reinem Quellwasser auf Trinkstärke (meist 40–50 % vol).' },
+      ],
+      craftTrivia:
+        'Der Anteil an Destillat, der jährlich durch das poröse Holz der Fässer verdunstet, wird poetisch als "Angel’s Share" (Engelsanteil) bezeichnet.',
+    },
+    styles: [
+      {
+        name: 'Single Malt Scotch & Bourbon',
+        description: 'Im Eichenfass gereifte Getreidebrände – von torfig-rauchigem Islay-Whisky bis zu süßem Vanille-Karamell-Bourbon.',
+        abv: '40 % - 60 %',
+        flavorNotes: ['Getoastetes Eichenholz', 'Torfrauch', 'Vanille', 'Honigwabe', 'Trockenobst'],
+      },
+      {
+        name: 'Agavenbrände (Tequila & Mezcal)',
+        description: 'Aus sonnengereiften Agavenherzen destilliert, oft traditionell in Erdöfen geröstet.',
+        abv: '38 % - 50 %',
+        flavorNotes: ['Gegarte Agave', 'Rauchige Erde', 'Weißer Pfeffer', 'Zitrusabrieb'],
+      },
+      {
+        name: 'London Dry & Contemporary Gin',
+        description: 'Reiner Agraralkohol redestilliert mit Wacholderbeeren, Koriandersamen und Zitruszesten.',
+        abv: '40 % - 47 %',
+        flavorNotes: ['Wacholder', 'Koriander', 'Zitronenabrieb', 'Angelikawurzel'],
+      },
+      {
+        name: 'Cognac & Brandys',
+        description: 'Zweifach in Kupferbrennblasen destillierter Weißwein aus der Charente, jahrelang in Limousin-Eiche gereift.',
+        abv: '40 % - 45 %',
+        flavorNotes: ['Getrocknete Aprikose', 'Leder', 'Muskat', 'Rancio'],
+      },
+    ],
+    sensoryProfile: {
+      keyAromas: ['Fass-Eiche & Vanillin', 'Getreide & Malz', 'Torf & Rauch', 'Frische Botanicals', 'Trockenfrüchte'],
+      flavorCharacteristics:
+        'Alkoholische Wärme, viskose Öligkeit, Holzkomplexität und ein langer, wärmender Abgang.',
+      tastingTechnique:
+        'Destillat im Nosing-Glas nicht zu tief einatmen. Mit wenigen Tropfen stillem Wasser öffnen, um Ester freizusetzen.',
+    },
+    serving: {
+      idealTemperature: 'Pur bei Raumtemperatur: 16 °C – 20 °C; Gin/Wodka eiskalt oder in Cocktails',
+      glassware: ['Glencairn / Nosing-Glas', 'Tumbler / Rocks-Glas', 'Copita-Glas'],
+      proTips:
+        'Füge gereiften Spirituosen ein paar Tropfen raumtemperiertes Wasser hinzu, um die Oberflächenspannung zu brechen und Aromen zu entfalten.',
+    },
+    funFacts: [
+      'Echtes Bourbon-Whiskey muss per Gesetz in fabrikneuen, innen ausgekohlten Fässern aus amerikanischer Eiche reifen.',
+      'In Schottland lagern zu jedem Zeitpunkt mehr Fässer Whisky, als das Land Einwohner hat.',
+      'Wacholder ist der gesetzlich vorgeschriebene Hauptbestandteil, damit ein Destillat sich Gin nennen darf.',
+    ],
+  },
+  {
+    id: 'tea',
+    archetype: 'Tea',
+    title: 'Artisanaler Tee',
+    icon: '🍵',
+    tagline: 'Von uralten Teebäumen in Yunnan zur meditativen Gongfu-Teezeremonie',
+    bannerImage: TEA_IMAGE,
+    origin: {
+      era: 'ca. 2737 v. Chr.',
+      region: 'Südwestchina (Yunnan / Sichuan)',
+      history:
+        'Der chinesischen Legende nach fiel ein getrocknetes Blatt der Camellia sinensis in den Kessel mit kochendem Wasser von Kaiser Shennong. Im antiken China zunächst als Heilkraut und Suppe konsumiert, entwickelte sich Tee während der Tang-Dynastie zum Kulturgut, festgehalten in Lu Yus "Cha Jing" (Klassiker des Tees). Zen-Mönche brachten Tee nach Japan, wo die Chanoyu-Zeremonie entstand.',
+      milestones: [
+        { year: '2737 v. Chr.', event: 'Kaiser Shennong entdeckt zufällig den Teegenuss.' },
+        { year: 'ca. 760 n. Chr.', event: 'Lu Yu verfasst das "Cha Jing", die erste Monografie über Tee.' },
+        { year: '1610 n. Chr.', event: 'Die Niederländische Ostindien-Kompanie bringt die ersten Teekisten nach Europa.' },
+        { year: '1848 n. Chr.', event: 'Robert Fortune schmuggelt Teepflanzen aus China nach Indien und begründet Darjeeling.' },
+      ],
+    },
+    production: {
+      ingredients: ['Frische Blätter der Camellia sinensis (var. sinensis oder assamica)', 'Weiches Quellwasser'],
+      steps: [
+        { name: '1. Pflücken', description: 'Sorgfältige Handernte der Knospe und der obersten zwei Blätter ("Two leaves and a bud").' },
+        { name: '2. Welken', description: 'Wasserentzug auf Bambusmatten, um die Blätter geschmeidig zu machen.' },
+        { name: '3. Rollen & Zellaufschluss', description: 'Mechanisches Rollen bricht Zellwände auf und setzt ätherische Öle frei.' },
+        { name: '4. Oxidation & Fixierung', description: 'Gezielte Oxidation (Grüntee: gestoppt durch Erhitzen; Schwarztee: 100 % oxidiert).' },
+        { name: '5. Trocknung', description: 'Heißlufttrocknung stabilisiert das Blatt für lange Haltbarkeit.' },
+      ],
+      craftTrivia:
+        'Alle echten Tees (Weiß, Grün, Gelb, Oolong, Schwarz, Pu-Erh) stammen von derselben Pflanzenart (Camellia sinensis).',
+    },
+    styles: [
+      {
+        name: 'Grüner Tee & Matcha',
+        description: 'Unoxidiert, reich an Antioxidantien mit frischen Noten von Frühlingswiese und Umami.',
+        flavorNotes: ['Gedämpfter Spinat', 'Frisches Gras', 'Süßes Umami', 'Kastanien'],
+      },
+      {
+        name: 'Weißer Tee (Silver Needle)',
+        description: 'Minimal verarbeitet aus zarten Flaumknospen; ätherisch, sanft und blumig.',
+        flavorNotes: ['Melone', 'Weißer Pfirsich', 'Heu', 'Wildblüten'],
+      },
+      {
+        name: 'Oolong (Teiloxidiert: 20–80 %)',
+        description: 'Die Königsdisziplin der Teekunst; von floralen Orchideennoten bis zu Rösthonig.',
+        flavorNotes: ['Orchidee', 'Gerösteter Pfirsich', 'Blütennektar', 'Milchcreme'],
+      },
+      {
+        name: 'Schwarzer Tee / Hong Cha',
+        description: 'Vollständig oxidiert mit bernsteinfarbener Tasse, malziger Tiefe und Holznoten.',
+        flavorNotes: ['Malz', 'Muskatellertraube', 'Dörrpflaume', 'Dunkle Melasse'],
+      },
+      {
+        name: 'Gereifter Pu-Erh (Postfermentiert)',
+        description: 'Mikrobiell gereift und zu Fladen gepresst; erdig, waldig und samtweich.',
+        flavorNotes: ['Waldboden', 'Feuchtes Herbstlaub', 'Kampfer', 'Kakaoschale'],
+      },
+    ],
+    sensoryProfile: {
+      keyAromas: ['Frisches Wiesengras', 'Orchideenblüten', 'Geröstetes Malz', 'Honigfrüchte', 'Erdiger Waldboden'],
+      flavorCharacteristics:
+        'Geprägt von Tassenfarbe, Aufgussklarheit, süßem Nachhall (Hui Gan) und Mundresonanz (Cha Qi).',
+      tastingTechnique:
+        'Gongfu Cha: Hohe Blattmenge im kleinen Yixing-Kännchen oder Gaiwan mit vielen kurzen Aufgüssen (15–30 Sek.).'
+    },
+    serving: {
+      idealTemperature: 'Grün- & Weißtee: 75 °C – 80 °C; Oolong: 85 °C – 95 °C; Schwarztee & Pu-Erh: 95 °C – 100 °C',
+      glassware: ['Gaiwan & Riechbecher', 'Kyusu-Kännchen', 'Doppelwandiges Teeglas'],
+      proTips:
+        'Verwende niemals kochendes 100 °C heißes Wasser für feine Grün- oder Weißtees, da dies Bitterstoffe herauslöst.',
+    },
+    funFacts: [
+      'Tee ist nach reinem Wasser das meistgetrunkene Getränk der Welt.',
+      'Die im Tee enthaltene Aminosäure L-Theanin sorgt zusammen mit Koffein für fokussierte, entspannte Wachheit.',
+      'Ein 50 Jahre gereifter Pu-Erh-Teefladen kann bei Auktionen über 10.000 Euro erzielen.',
+    ],
+  },
+  {
+    id: 'cocktail',
+    archetype: 'Cocktail',
+    title: 'Die Kunst der Mixologie',
+    icon: '🍸',
+    tagline: 'Balance, Bitters, Eisdynamik und die goldenen Mischverhältnisse',
+    bannerImage: COCKTAIL_IMAGE,
+    origin: {
+      era: 'ca. 1806 / Mitte des 19. Jahrhunderts',
+      region: 'USA (New York & New Orleans)',
+      history:
+        'Der Begriff "Cock-tail" wurde erstmals 1806 in New York schriftlich definiert als anregendes Getränk aus Spirituosen, Zucker, Wasser und Bitters. Jerry Thomas begründete 1862 mit "The Bartender’s Guide" das professionelle Bargewerbe. Die amerikanische Prohibition (1920–1933) brachte Barkeeper nach Europa (Paris, London) und begründete legendäre Hotelbars. Heute erlebt die Barkultur ein goldenes Zeitalter mit handgeschnittenem Klareis und hauseigenen Essenzen.',
+      milestones: [
+        { year: '1806 n. Chr.', event: 'Erste gedruckte Definition des Begriffs Cocktail in Hudson, New York.' },
+        { year: '1862 n. Chr.', event: 'Jerry Thomas veröffentlicht das erste Rezeptbuch für Barkeeper.' },
+        { year: '1920–1933 n. Chr.', event: 'Die Prohibition beflügelt die Speakeasy-Kultur weltweit.' },
+        { year: '2000er–heute', event: 'Die moderne Craft-Cocktail-Renaissance um Sasha Petraske und Dale DeGroff.' },
+      ],
+    },
+    production: {
+      ingredients: ['Basisspirituose (40–50 ml)', 'Modifikator / Wermut / Likör', 'Säure (Frischer Zitronen-/Limettensaft)', 'Süßungsmittel (Sirup / Likör)', 'Bitters & Aromaten'],
+      steps: [
+        { name: '1. Präzises Abmessen', description: 'Nutzung des Jiggers für exakte Proportionen und perfekte Geschmacksbalance.' },
+        { name: '2. Shaken (bei Zitrussäften)', description: 'Kräftiges Schütteln mit solidem Eis kühlt, belüftet und schmilzt kontrolliert Schmelzwasser ein.' },
+        { name: '3. Rühren (bei Spirit-Forward Drinks)', description: 'Sanftes Rühren für 30–45 Sekunden sorgt für seidige Textur ohne Luftbläschen.' },
+        { name: '4. Doppeltes Abseihen (Fine Strain)', description: 'Entfernt feine Eissplitter, um die Verwässerung im Glas zu stoppen.' },
+        { name: '5. Zesten-Expression', description: 'Ausdrücken von Zitrusschalen sprüht aromatische Öle über den Drink.' },
+      ],
+      craftTrivia:
+        'Schmelzwasser ist kein Makel, sondern eine unverzichtbare Zutat! Ein Cocktail enthält 20 % bis 25 % Schmelzwasser aus Eis.',
+    },
+    styles: [
+      {
+        name: 'Old Fashioned & Manhattan',
+        description: 'Klassische Spirit-Forward Drinks: Whisky ausbalanciert mit Zucker/Wermut und aromatischen Bitters.',
+        flavorNotes: ['Bourbon / Rye', 'Orangenöl', 'Würzige Bitters', 'Maraschino-Kirsche'],
+      },
+      {
+        name: 'Die Sour-Familie (Daiquiri, Margarita)',
+        description: 'Das goldene Verhältnis: 2 Teile Basis-Spirituose : 1 Teil frische Säure : 0,75 Teile Süße.',
+        flavorNotes: ['Frische Limette', 'Agavensüße', 'Klare Spirituosenfrucht'],
+      },
+      {
+        name: 'Negroni & Boulevardier',
+        description: 'Gleiche Teile Gin (oder Bourbon), roter Wermut und italienischer Bitter-Aperitif (Campari).',
+        flavorNotes: ['Enzian-Bitter', 'Orangenzeste', 'Kräuterwermut'],
+      },
+      {
+        name: 'Martini (Gin oder Wodka)',
+        description: 'Der Inbegriff puristischer Barmixkunst: trockene Spirituose, trockener Wermut und Zitronenzeste oder Olive.',
+        flavorNotes: ['Wacholder', 'Feine Salzigkeit', 'Zitronenöl'],
+      },
+    ],
+    sensoryProfile: {
+      keyAromas: ['Frische Zitrusöle', 'Würzige Kräuter & Wurzeln', 'Aromatische Bitters', 'Basis-Destillat'],
+      flavorCharacteristics:
+        'Harmonisches Spannungsfeld aus Süße, Säure, Bitterkeit und Alkoholgehalt.',
+      tastingTechnique:
+        'Zuerst das Aroma der Zeste wahrnehmen, dann die kühle Frische am Gaumen und den langen bittersüßen Nachhall.',
+    },
+    serving: {
+      idealTemperature: 'Straight Up: -2 °C bis 0 °C; On the Rocks: 0 °C bis 2 °C mit handgeschnittenem Klareisblock',
+      glassware: ['Coupe / Nick & Nora Glas', 'Old Fashioned / Tumbler', 'Highball-Glas'],
+      proTips:
+        'Glasturngeräte und Gästegläser immer 10 Minuten vor dem Servieren im Tiefkühler vorkühlen.',
+    },
+    funFacts: [
+      'Kristallklares Eis entsteht durch gerichtetes Frieren (Directional Freezing), das Luftbläschen nach unten verdrängt.',
+      'Ernest Hemingway ließ sich in Havannas Bar El Floridita einen zuckerfreien Daiquiri mit doppeltem Rum mixen (Hemingway Daiquiri).',
+      'Die klassische Cocktailkirsche wurde ursprünglich in Maraschino-Kirschlikör eingelegt.',
+    ],
+  },
+  {
+    id: 'soda-tonics',
+    archetype: 'Soda & Tonics',
+    title: 'Sodas, Tonics & Botanicals',
+    icon: '🫧',
+    tagline: 'Karbonisierungschemie, Chinarinde und handwerkliche Mixer',
+    bannerImage: SODA_IMAGE,
+    origin: {
+      era: 'ca. 1767–1850er Jahre',
+      region: 'England, Schweiz & Britisch-Indien',
+      history:
+        '1767 entdeckte der englische Naturforscher Joseph Priestley, wie man Wasser mit Kohlensäure anreichert. Jacob Schweppe industrialisierte das Verfahren 1783 in Genf. Im 19. Jahrhundert mischten britische Kolonialoffiziere in Indien bitteres Chinin (aus südamerikanischer Chinarinde zur Malariaprophylaxe) mit Sodawasser, Zucker und Gin – die Geburtsstunde des Gin & Tonic.',
+      milestones: [
+        { year: '1767 n. Chr.', event: 'Joseph Priestley stellt erstmals künstlich kohlensäurehaltiges Mineralwasser her.' },
+        { year: '1783 n. Chr.', event: 'Jacob Schweppe perfektioniert die Karbonisierung und gründet Schweppes.' },
+        { year: '1858 n. Chr.', event: 'Erasmus Bond patentiert das erste kommerzielle Tonic Water mit Chinin.' },
+        { year: '2005–heute', event: 'Die Premium-Mixer-Revolution mit natürlichen Botanicals und feiner Kohlensäure.' },
+      ],
+    },
+    production: {
+      ingredients: ['Reines Quellwasser', 'Chinarindenextrakt (Chinin)', 'Rohrzucker / Agave', 'Botanical-Extrakte (Zitronengras, Bitterorange, Ingwer)', 'Kohlensäure (CO₂)'],
+      steps: [
+        { name: '1. Wasseraufbereitung', description: 'Schonende Filtration für ein neutrales, geschmacksreines Fundament.' },
+        { name: '2. Mazeration der Botanicals', description: 'Schonender Auszug ätherischer Öle und Zitrusschalen.' },
+        { name: '3. Süße-Säure-Abstimmung', description: 'Harmonische Balance aus Zitronensäure und unraffiniertem Rohrzucker.' },
+        { name: '4. Hochdruck-Karbonisierung', description: 'CO₂ wird bei eisigen 1 °C–3 °C feinperlig gelöst.' },
+        { name: '5. Sterile Flaschenfüllung', description: 'Druckabfüllung in Glasflaschen für langanhaltendes Prickeln.' },
+      ],
+      craftTrivia:
+        'Tonic Water leuchtet unter UV-Schwarzlicht bläulich fluoreszierend aufgrund der Chininmoleküle.',
+    },
+    styles: [
+      {
+        name: 'Indian & Mediterranean Tonic Water',
+        description: 'Frische Balance aus Chininbittere, Zitrusschalen und mediterranen Kräutern.',
+        flavorNotes: ['Chinin-Bittere', 'Zitronenverbene', 'Thymian', 'Rohrzucker'],
+      },
+      {
+        name: 'Craft Ginger Beer & Ginger Ale',
+        description: 'Mit echtem Ingwer gebraut für feurige, wärmende Schärfe im Abgang.',
+        flavorNotes: ['Feuriger Ingwer', 'Limettensaft', 'Warmer Pfeffer', 'Karamell'],
+      },
+      {
+        name: 'Botanische Colas & Herbal Sodas',
+        description: 'Würzige Essenzen aus Kolanuss, Zimtrinde, Vanille und Muskatnuss.',
+        flavorNotes: ['Kolanuss', 'Zimtrinde', 'Gewürznelke', 'Bourbon-Vanille'],
+      },
+      {
+        name: 'Prickelndes Mineralwasser & Seltzers',
+        description: 'Zuckerfreie, kristallklare Erfrischung mit feiner Mineralik.',
+        flavorNotes: ['Reine Kohlensäure', 'Klarer frischer Abgang'],
+      },
+    ],
+    sensoryProfile: {
+      keyAromas: ['Frische Zitruszesten', 'Würziger Ingwer', 'Mediterrane Kräuter', 'Reine Frische'],
+      flavorCharacteristics:
+        'Perlagestruktur (feinperlig vs. kräftig prickelnd), herbe Chininbittere und mundwässernde Frische.',
+      tastingTechnique:
+        'Vorsichtig an der Glaswand einschenken. Bei 4 °C pur verkosten, um Süße, Bittere und Spritzigkeit zu prüfen.',
+    },
+    serving: {
+      idealTemperature: 'Eiskalt: 2 °C – 4 °C',
+      glassware: ['Highball-Glas', 'Copa-Ballonglas (für Gin & Tonic mit Botanicals)'],
+      proTips:
+        'Beim Mischen das Tonic vorsichtig über den gedrehten Barlöffel ins Eis gießen, um Kohlensäureverlust zu minimieren.',
+    },
+    funFacts: [
+      'Amerikanische Soda Fountains entstanden in Apotheken, da Apotheker früher kohlensäurehaltige Heiltränke ausgaben.',
+      'Chinin aus der Rinde des südamerikanischen Fieberbaums rettete im 19. Jahrhundert Millionen Menschenleben vor Malaria.',
+      'Hochwertige Craft-Tonics verwenden echten Rohrzucker statt Glukose-Fruktose-Sirup für einen sauberen Abgang.',
+    ],
+  },
+  {
+    id: 'other',
+    archetype: 'Other',
+    title: 'Traditionelle & Besondere Fermente',
+    icon: '✨',
+    tagline: 'Met, Cidre, Sake und uralte Fermentationsgetränke',
+    bannerImage: OTHER_IMAGE,
+    origin: {
+      era: 'ca. 7000 v. Chr. – heute',
+      region: 'Weltweit: Skandinavien, Japan, Normandie, Kaukasus',
+      history:
+        'Abseits von klassischem Bier und Wein besitzt die Menschheit ein reiches Erbe fermentierter Getränke. Met (Honigwein) gilt als das älteste alkoholische Getränk überhaupt, entstanden vor dem Ackerbau durch natürlich vergorene Bienennester. In Japan entwickelte sich Sake (Nihonshu) zur kaiserlichen Zeremonialkultur unter Nutzung von Koji-Pilzen. In der Normandie und England prägten spritzige Apfel-Cidres und Birnen-Perries die ländliche Kultur.',
+      milestones: [
+        { year: '7000 v. Chr.', event: 'Chemische Spuren vergorener Honig- und Reisgetränke im chinesischen Jiahu.' },
+        { year: '700 n. Chr.', event: 'Nara-Zeit in Japan: Sake-Brauen wird institutionalisiert.' },
+        { year: '1700er n. Chr.', event: 'Cider wird zum täglichen Grundgetränk im kolonialen Amerika und ländlichen England.' },
+        { year: '2010er–heute', event: 'Weltweite Renaissance von Craft-Meaderies, Naturcidern und lebendigem Kombucha.' },
+      ],
+    },
+    production: {
+      ingredients: ['Reiner Honig (Met)', 'Alte Apfelsorten (Cidre)', 'Polierter Reis & Koji-Kulturen (Sake)', 'Fermentationskulturen'],
+      steps: [
+        { name: '1. Rohstoffaufbereitung', description: 'Keltern gerbstoffreicher Äpfel, Polieren von Sake-Reis oder Verdünnen von rohem Honig.' },
+        { name: '2. Beimpfung & Verzuckerung', description: 'Bei Sake wandelt Koji Reisstärke in Zucker um, während Hefe gleichzeitig gärt.' },
+        { name: '3. Kaltgärung', description: 'Schonende Fermentation bewahrt zarte Blüten-, Honig- und Esteraromen.' },
+        { name: '4. Reifung', description: 'Ausbau in Holzfässern, Edelstahltanks oder Steingutgefäßen.' },
+        { name: '5. Harmonisierung', description: 'Feinabstimmung von Restsüße, Apfelsäure und feiner natürlicher Kohlensäure.' },
+      ],
+      craftTrivia:
+        'Sake-Brauen ist weder Bier noch Wein – durch die gleichzeitige Verzuckerung und Gärung können über 20 % natürlicher Alkoholgehalt entstehen.',
+    },
+    styles: [
+      {
+        name: 'Traditioneller & Frucht-Met (Melomel)',
+        description: 'Vergorener Honigwein von knochentrocken bis dessertsüß, oft mit Waldbeeren oder Gewürzen verfeinert.',
+        abv: '6 % - 14 %',
+        flavorNotes: ['Wildblütenhonig', 'Orangenblüte', 'Honigwabe', 'Bienenwachs'],
+      },
+      {
+        name: 'Handwerklicher Cidre & Perry',
+        description: 'Tanninreich, trocken und charaktervoll aus alten Streuobst-Sorten mit rustikalem Funk.',
+        abv: '5,0 % - 8,5 %',
+        flavorNotes: ['Gerbstoffreiche Apfelschale', 'Bauernhof-Funk', 'Apfelfrische', 'Gebackene Birne'],
+      },
+      {
+        name: 'Junmai Daiginjo Sake',
+        description: 'Super-Premium-Sake aus zu mindestens 50 % poliertem Reis mit Aromen von Honigmelone und Litschi.',
+        abv: '14 % - 16 %',
+        flavorNotes: ['Honigmelone', 'Litschi', 'Weißer Pfirsich', 'Klares Quellwasser'],
+      },
+      {
+        name: 'Roher Bio-Kombucha',
+        description: 'Spritzig fermentierter Tee mit lebendigen Kulturen (SCOBY), erfrischend säuerlich und probiotisch.',
+        abv: '0,5 % - 1,5 %',
+        flavorNotes: ['Heller Essig-Touch', 'Grüner Apfel', 'Zitronenabrieb', 'Frischer Ingwer'],
+      },
+    ],
+    sensoryProfile: {
+      keyAromas: ['Blütenhonig & Bienenwachs', 'Herbe Apfelschale', 'Melone & Reis-Ester', 'Spritzige Fermentnoten'],
+      flavorCharacteristics:
+        'Ein faszinierendes Zusammenspiel aus natürlicher Restsüße, lebendiger Säure und delikater Gärungsfrische.',
+      tastingTechnique:
+        'Im Weißweinglas schwenken, um zarte Honig- oder Frucht-Ester zu entfalten.',
+    },
+    serving: {
+      idealTemperature: 'Cidre & Kombucha: 4 °C – 6 °C; Daiginjo-Sake: 8 °C – 10 °C; Met: 10 °C – 14 °C',
+      glassware: ['Weißweinkelch', 'Ochoko-Sake-Schälchen', 'Traditionelles Ton-Trinkhorn'],
+      proTips:
+        'Hochwertigen handwerklichen Cidre wie Weißwein servieren und leicht gekühlt im Kelchglas genießen.',
+    },
+    funFacts: [
+      'Der Begriff "Flitterwochen" (Honeymoon) stammt aus der alten Tradition, dass Brautpaare einen Mondzyklus lang täglich Met tranken.',
+      'In der Normandie gibt es über 700 traditionelle Apfelsorten, die speziell für Cidre gezüchtet wurden.',
+      'Um Sake zu brauen, polieren Meisterbrauer die Reiskörner oft tagelang, um Fette und Proteine in der Schale abzutragen.',
+    ],
+  },
+];
+
+export const getDrinkKnowledgeBase = (languageOrIsGerman?: boolean | string): DrinkCategoryKnowledge[] => {
+  const isDe =
+    typeof languageOrIsGerman === 'boolean'
+      ? languageOrIsGerman
+      : typeof languageOrIsGerman === 'string'
+      ? languageOrIsGerman.startsWith('de')
+      : false;
+  return isDe ? DRINK_KNOWLEDGE_BASE_DE : DRINK_KNOWLEDGE_BASE_EN;
+};
+
+export const DRINK_KNOWLEDGE_BASE = DRINK_KNOWLEDGE_BASE_EN;

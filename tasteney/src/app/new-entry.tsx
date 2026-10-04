@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,17 +10,20 @@ import {
   Platform,
   useColorScheme,
   Alert,
+  Keyboard,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
 import { RatingSelector } from '@/components/rating-selector';
 import { ImageSelector } from '@/components/image-selector';
 import { SensorySelector } from '@/components/sensory-selector';
 import { saveDrinkEntry, getDrinkEntryById } from '@/services/storage';
-import { resolveLocationFromAsset } from '@/services/location';
+import { resolveLocationFromAsset, getCurrentDeviceLocation } from '@/services/location';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { BeverageArchetype, BEVERAGE_SUBTYPES, SensoryDescriptor } from '@/types/drink';
+import { translateArchetype, translateSubtype } from '@/i18n';
 
 const ARCHETYPES: { label: BeverageArchetype; icon: string }[] = [
   { label: 'Wine', icon: '🍷' },
@@ -38,6 +41,7 @@ export default function NewEntryScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const editId = params.id;
   const isEditing = Boolean(editId);
+  const { t } = useTranslation();
 
   const scheme = useColorScheme();
   const insets = useSafeAreaInsets();
@@ -58,6 +62,58 @@ export default function NewEntryScreen() {
   const [originalCreatedAt, setOriginalCreatedAt] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const sectionPositions = useRef<Record<string, number>>({});
+  const sensoryCategoryPositions = useRef<Record<string, number>>({});
+  const activeInputTarget = useRef<{ key: string; sub?: string } | null>(null);
+
+  const scrollToTarget = useCallback((key: string, sub?: string) => {
+    activeInputTarget.current = { key, sub };
+    let targetY = 0;
+    if (key === 'name' || key === 'manufacturer' || key === 'details') {
+      targetY = (sectionPositions.current['details'] ?? 0) - 20;
+    } else if (key === 'country' || key === 'city' || key === 'location') {
+      targetY = (sectionPositions.current['location'] ?? 0) - 20;
+    } else if (key === 'sensory') {
+      const catY = sub ? (sensoryCategoryPositions.current[sub] ?? 0) : 0;
+      targetY = (sectionPositions.current['sensory'] ?? 0) + catY - 15;
+    } else if (key === 'notes') {
+      targetY = (sectionPositions.current['notes'] ?? 0) - 15;
+    }
+
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
+        y: Math.max(0, targetY),
+        animated: true,
+      });
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.scrollTo(0, 0);
+        document.documentElement?.scrollTo?.(0, 0);
+        document.body?.scrollTo?.(0, 0);
+      }
+    }, [])
+  );
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        if (activeInputTarget.current) {
+          scrollToTarget(activeInputTarget.current.key, activeInputTarget.current.sub);
+        }
+      }
+    );
+    return () => {
+      showSub.remove();
+    };
+  }, [scrollToTarget]);
 
   useEffect(() => {
     let isMounted = true;
@@ -90,26 +146,56 @@ export default function NewEntryScreen() {
 
   const handleImagesAdded = async (newAssets: ImagePickerAsset[]) => {
     if (!newAssets || newAssets.length === 0) return;
+
+    // If both country and city are already filled in by the user, do not override or request permissions
+    let currentCountry = country.trim();
+    let currentCity = city.trim();
+    if (currentCountry && currentCity) {
+      return;
+    }
+
     setIsGeocodingLocation(true);
     try {
-      // Look from the last image added backwards to find the first valid GPS coordinate
+      let resolved = false;
+
+      // Tier 1: Try resolving location from photo EXIF metadata (reverse order: newest first)
       for (let i = newAssets.length - 1; i >= 0; i--) {
         const asset = newAssets[i];
         const location = await resolveLocationFromAsset(asset);
         if (location && (location.country || location.city)) {
-          if (location.country) {
+          if (!currentCountry && location.country) {
             setCountry(location.country);
+            currentCountry = location.country;
           }
-          if (location.city) {
+          if (!currentCity && location.city) {
             setCity(location.city);
+            currentCity = location.city;
           }
           const displayLabel = [location.city, location.country].filter(Boolean).join(', ');
           setAutoDetectedLocation(displayLabel);
+          resolved = true;
           break;
         }
       }
+
+      // Tier 2: If EXIF yielded no location and info is still missing, fall back to current device GPS
+      if (!resolved && (!currentCountry || !currentCity)) {
+        const deviceLocation = await getCurrentDeviceLocation();
+        if (deviceLocation && (deviceLocation.country || deviceLocation.city)) {
+          if (!currentCountry && deviceLocation.country) {
+            setCountry(deviceLocation.country);
+            currentCountry = deviceLocation.country;
+          }
+          if (!currentCity && deviceLocation.city) {
+            setCity(deviceLocation.city);
+            currentCity = deviceLocation.city;
+          }
+          const displayLabel = [deviceLocation.city, deviceLocation.country].filter(Boolean).join(', ');
+          setAutoDetectedLocation(displayLabel);
+        }
+      }
     } catch (err) {
-      console.error('Failed to resolve location from asset:', err);
+      console.error('Failed to resolve location:', err);
     } finally {
       setIsGeocodingLocation(false);
     }
@@ -117,7 +203,7 @@ export default function NewEntryScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Drink Name Required', 'Please provide a name for this drink before saving.');
+      Alert.alert(t('newEntry.validationTitle'), t('newEntry.validationMessage'));
       return;
     }
 
@@ -161,7 +247,7 @@ export default function NewEntryScreen() {
       }, 1200);
     } catch (error) {
       console.error('Save failed:', error);
-      Alert.alert('Save Failed', 'An error occurred while saving the drink entry. Please try again.');
+      Alert.alert(t('newEntry.saveFailedTitle'), t('newEntry.saveFailedMessage'));
     } finally {
       setIsSaving(false);
     }
@@ -170,45 +256,17 @@ export default function NewEntryScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {/* Header
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + (Platform.OS === 'web' ? 16 : 8),
-            backgroundColor: colors.background,
-            borderBottomColor: colors.surfaceContainerHigh,
-          },
-        ]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.push('/');
-              }
-            }}
-            style={[styles.backButton, { backgroundColor: colors.surfaceContainerLow }]}>
-            <Text style={[styles.backIcon, { color: colors.primary }]}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerSubtitle, { color: colors.secondary }]}>
-              {isEditing ? 'UPDATE ENTRY' : 'RITUAL JOURNAL'}
-            </Text>
-            <Text style={[styles.headerTitle, { color: colors.primary }]}>
-              {isEditing ? 'Edit Drink' : 'Log New Drink'}
-            </Text>
-          </View>
-        </View>
-      </View>*/}
-
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 44 : 0}>
       <ScrollView
+        ref={scrollViewRef}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={true}
+        keyboardDismissMode="on-drag"
         contentContainerStyle={[
           styles.scrollContainer,
           {
-            paddingBottom: insets.bottom + 90,
+            paddingBottom: insets.bottom + 120,
           },
         ]}
         showsVerticalScrollIndicator={false}>
@@ -216,9 +274,11 @@ export default function NewEntryScreen() {
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-              BEVERAGE ARCHETYPE
+              {t('newEntry.sectionCategory')}
             </Text>
-            <Text style={[styles.sectionHint, { color: colors.secondary }]}>Select category</Text>
+            <Text style={[styles.sectionHint, { color: colors.secondary }]}>
+              {t('newEntry.selectCategoryHint')}
+            </Text>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.archetypeScroll}>
@@ -241,7 +301,7 @@ export default function NewEntryScreen() {
                       styles.archetypeText,
                       isSelected ? { color: colors.onPrimary, fontWeight: '700' } : { color: colors.text },
                     ]}>
-                    {item.label}
+                    {translateArchetype(item.label)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -254,9 +314,11 @@ export default function NewEntryScreen() {
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-                BEVERAGE SUBTYPE
+                {t('newEntry.sectionSubtypeHeader')}
               </Text>
-              <Text style={[styles.sectionHint, { color: colors.secondary }]}>Optional</Text>
+              <Text style={[styles.sectionHint, { color: colors.secondary }]}>
+                {t('newEntry.optionalHint')}
+              </Text>
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subtypeScroll}>
@@ -278,7 +340,7 @@ export default function NewEntryScreen() {
                         styles.subtypeText,
                         isSelected ? { color: colors.onPrimary, fontWeight: '700' } : { color: colors.text },
                       ]}>
-                      {item}
+                      {translateSubtype(archetype, item)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -297,21 +359,31 @@ export default function NewEntryScreen() {
         </View>
 
         {/* Name and Manufacturer Fields */}
-        <View style={styles.sectionBlock}>
+        <View
+          style={styles.sectionBlock}
+          onLayout={(e) => {
+            sectionPositions.current['details'] = e.nativeEvent.layout.y;
+          }}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-              DRINK IDENTITY
+              {t('newEntry.sectionDetails')}
             </Text>
-            <Text style={[styles.requiredBadge, { color: colors.secondary }]}>* Required</Text>
+            <Text style={[styles.requiredBadge, { color: colors.secondary }]}>
+              {t('newEntry.required')}
+            </Text>
           </View>
 
           <View style={[styles.inputCard, { backgroundColor: colors.surfaceContainerLow }]}>
             <TextInput
               style={[styles.nameInput, { color: colors.primary }]}
-              placeholder="Drink Name (e.g. Sassicaia 2018, Geisha Pour-Over)"
+              placeholder={t('newEntry.namePlaceholder')}
               placeholderTextColor="rgba(85, 66, 67, 0.45)"
               value={name}
-              onChangeText={setName}
+              onFocus={() => scrollToTarget('name')}
+              onChangeText={(text) => {
+                setName(text);
+                scrollToTarget('name');
+              }}
             />
 
             <View style={[styles.inputDivider, { backgroundColor: colors.surfaceContainerHighest }]} />
@@ -320,31 +392,43 @@ export default function NewEntryScreen() {
               <Text style={[styles.subInputIcon, { color: colors.secondary }]}>🏷️</Text>
               <TextInput
                 style={[styles.subInput, { color: colors.text }]}
-                placeholder="Manufacturer / Producer / Estate"
+                placeholder={t('newEntry.producerPlaceholder')}
                 placeholderTextColor="rgba(85, 66, 67, 0.45)"
                 value={manufacturer}
-                onChangeText={setManufacturer}
+                onFocus={() => scrollToTarget('manufacturer')}
+                onChangeText={(text) => {
+                  setManufacturer(text);
+                  scrollToTarget('manufacturer');
+                }}
               />
             </View>
           </View>
         </View>
 
         {/* Location & Origin Fields */}
-        <View style={styles.sectionBlock}>
+        <View
+          style={styles.sectionBlock}
+          onLayout={(e) => {
+            sectionPositions.current['location'] = e.nativeEvent.layout.y;
+          }}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-              LOCATION & ORIGIN
+              {t('newEntry.sectionOrigin')}
             </Text>
             {isGeocodingLocation ? (
-              <Text style={[styles.sectionHint, { color: colors.primary }]}>Extracting GPS...</Text>
+              <Text style={[styles.sectionHint, { color: colors.primary }]}>
+                {t('newEntry.extractingGps')}
+              </Text>
             ) : autoDetectedLocation ? (
               <View style={[styles.autoDetectedBadge, { backgroundColor: colors.secondaryFixed }]}>
                 <Text style={[styles.autoDetectedBadgeText, { color: colors.onSecondaryFixed }]}>
-                  📍 Auto-detected
+                  {t('newEntry.autoDetected')}
                 </Text>
               </View>
             ) : (
-              <Text style={[styles.sectionHint, { color: colors.secondary }]}>Optional</Text>
+              <Text style={[styles.sectionHint, { color: colors.secondary }]}>
+                {t('newEntry.optionalHint')}
+              </Text>
             )}
           </View>
 
@@ -353,12 +437,14 @@ export default function NewEntryScreen() {
               <Text style={[styles.subInputIcon, { color: colors.secondary }]}>🌍</Text>
               <TextInput
                 style={[styles.subInput, { color: colors.text }]}
-                placeholder="Country (e.g. France, Ethiopia, Japan)"
+                placeholder={t('newEntry.countryPlaceholder')}
                 placeholderTextColor="rgba(85, 66, 67, 0.45)"
                 value={country}
+                onFocus={() => scrollToTarget('country')}
                 onChangeText={(val) => {
                   setCountry(val);
                   if (autoDetectedLocation) setAutoDetectedLocation(null);
+                  scrollToTarget('country');
                 }}
               />
             </View>
@@ -369,12 +455,14 @@ export default function NewEntryScreen() {
               <Text style={[styles.subInputIcon, { color: colors.secondary }]}>🏙️</Text>
               <TextInput
                 style={[styles.subInput, { color: colors.text }]}
-                placeholder="City / Region (e.g. Bordeaux, Yirgacheffe, Kyoto)"
+                placeholder={t('newEntry.cityPlaceholder')}
                 placeholderTextColor="rgba(85, 66, 67, 0.45)"
                 value={city}
+                onFocus={() => scrollToTarget('city')}
                 onChangeText={(val) => {
                   setCity(val);
                   if (autoDetectedLocation) setAutoDetectedLocation(null);
+                  scrollToTarget('city');
                 }}
               />
             </View>
@@ -387,39 +475,60 @@ export default function NewEntryScreen() {
         </View>
 
         {/* Sensory Tags */}
-        <View style={styles.sectionBlock}>
+        <View
+          style={styles.sectionBlock}
+          onLayout={(e) => {
+            sectionPositions.current['sensory'] = e.nativeEvent.layout.y;
+          }}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-              SENSORY DESCRIPTIONS & PROFILE
+              {t('newEntry.sectionSensory')}
             </Text>
-            <Text style={[styles.sectionHint, { color: colors.secondary }]}>Smell, Taste & Aftertaste</Text>
+            <Text style={[styles.sectionHint, { color: colors.secondary }]}>
+              {t('newEntry.sensoryHint')}
+            </Text>
           </View>
 
           <SensorySelector
             descriptors={selectedDescriptors}
             onChange={setSelectedDescriptors}
+            onInputActive={(category) => scrollToTarget('sensory', category)}
+            onCategoryLayout={(category, y) => {
+              sensoryCategoryPositions.current[category] = y;
+            }}
           />
         </View>
 
         {/* Personal Note / Memo */}
-        <View style={styles.sectionBlock}>
+        <View
+          style={styles.sectionBlock}
+          onLayout={(e) => {
+            sectionPositions.current['notes'] = e.nativeEvent.layout.y;
+          }}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-              PERSONAL NOTE & MEMO
+              {t('newEntry.sectionNotes')}
             </Text>
-            <Text style={[styles.sectionHint, { color: colors.secondary }]}>Optional private note</Text>
+            <Text style={[styles.sectionHint, { color: colors.secondary }]}>
+              {t('newEntry.notesHint')}
+            </Text>
           </View>
 
           <View style={[styles.memoCard, { backgroundColor: colors.surfaceContainerLow }]}>
             <TextInput
               style={[styles.memoInput, { color: colors.text }]}
-              placeholder="Add your tasting impressions, pairings, temperature, or personal memories..."
+              placeholder={t('newEntry.notesPlaceholder')}
               placeholderTextColor="rgba(85, 66, 67, 0.45)"
               multiline
               numberOfLines={4}
               textAlignVertical="top"
               value={notes}
-              onChangeText={setNotes}
+              onFocus={() => scrollToTarget('notes')}
+              onChangeText={(val) => {
+                setNotes(val);
+                scrollToTarget('notes');
+              }}
+              onContentSizeChange={() => scrollToTarget('notes')}
             />
           </View>
         </View>
@@ -441,15 +550,15 @@ export default function NewEntryScreen() {
             <Text style={[styles.saveButtonText, { color: colors.onPrimary }]}>
               {isSaving
                 ? isEditing
-                  ? 'Updating...'
-                  : 'Saving...'
+                  ? t('newEntry.updating')
+                  : t('newEntry.saving')
                 : isEditing
-                ? 'Update Tasting Entry'
-                : 'Save Tasting Entry'}
+                ? t('newEntry.saveEdit')
+                : t('newEntry.saveNew')}
             </Text>
           </TouchableOpacity>
           <Text style={[styles.saveFooterHint, { color: colors.textSecondary }]}>
-            Saved locally to private device ledger
+            {t('newEntry.footerHint')}
           </Text>
         </View>
       </ScrollView>
@@ -461,9 +570,9 @@ export default function NewEntryScreen() {
             <Text style={[styles.toastIcon, { color: colors.onSecondaryFixed }]}>✓</Text>
           </View>
           <View style={styles.toastTextBox}>
-            <Text style={styles.toastTitle}>{isEditing ? 'Drink Updated' : 'Drink Logged'}</Text>
+            <Text style={styles.toastTitle}>{isEditing ? t('newEntry.toastTitleEdit') : t('newEntry.toastTitleNew')}</Text>
             <Text style={styles.toastSubtitle}>
-              {isEditing ? 'Changes saved successfully to your diary' : 'Saved successfully to your diary'}
+              {isEditing ? t('newEntry.toastSubtitleEdit') : t('newEntry.toastSubtitleNew')}
             </Text>
           </View>
         </View>

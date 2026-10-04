@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,17 @@ import {
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
+import { useTranslation } from 'react-i18next';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { DRINK_KNOWLEDGE_BASE, DrinkCategoryKnowledge } from '@/data/drink-knowledge';
+import { getDrinkKnowledgeBase, DrinkCategoryKnowledge } from '@/data/drink-knowledge';
+import { isGerman, translateArchetype } from '@/i18n';
 
 type ActiveSectionTab = 'origin' | 'production' | 'styles' | 'sensory' | 'serving' | 'facts';
 
@@ -26,11 +28,14 @@ export default function ExploreKnowledgeScreen() {
   const router = useRouter();
   const scheme = useColorScheme();
   const theme = useTheme();
+  const { t } = useTranslation();
+  const german = isGerman();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const safeAreaInsets = useSafeAreaInsets();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const scrollViewRef = useRef<ScrollView>(null);
   const [expandedCategoryId, setExpandedCategoryId] = useState<string>('beer');
   const [activeSubTabs, setActiveSubTabs] = useState<Record<string, ActiveSectionTab>>({
     beer: 'origin',
@@ -42,6 +47,21 @@ export default function ExploreKnowledgeScreen() {
     'soda-tonics': 'origin',
     other: 'origin',
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.scrollTo(0, 0);
+        document.documentElement?.scrollTo?.(0, 0);
+        document.body?.scrollTo?.(0, 0);
+      }
+    }, [])
+  );
+
+  const knowledgeBase = useMemo(() => {
+    return getDrinkKnowledgeBase(german);
+  }, [german]);
 
   const insets = {
     ...safeAreaInsets,
@@ -66,20 +86,22 @@ export default function ExploreKnowledgeScreen() {
   });
 
   const categories = useMemo(() => {
-    return ['All', ...DRINK_KNOWLEDGE_BASE.map((item) => item.archetype)];
-  }, []);
+    return ['All', ...knowledgeBase.map((item) => item.archetype)];
+  }, [knowledgeBase]);
 
   const filteredKnowledge = useMemo(() => {
-    return DRINK_KNOWLEDGE_BASE.filter((item) => {
+    return knowledgeBase.filter((item) => {
       const matchesCategory =
         selectedCategory === 'All' || item.archetype === selectedCategory;
 
       const q = searchQuery.toLowerCase().trim();
       if (!q) return matchesCategory;
 
+      const translatedArchetype = translateArchetype(item.archetype).toLowerCase();
       const matchesQuery =
         item.title.toLowerCase().includes(q) ||
         item.archetype.toLowerCase().includes(q) ||
+        translatedArchetype.includes(q) ||
         item.tagline.toLowerCase().includes(q) ||
         item.origin.history.toLowerCase().includes(q) ||
         item.origin.region.toLowerCase().includes(q) ||
@@ -94,7 +116,7 @@ export default function ExploreKnowledgeScreen() {
 
       return matchesCategory && matchesQuery;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, knowledgeBase]);
 
   const toggleExpand = (id: string) => {
     setExpandedCategoryId((prev) => (prev === id ? '' : id));
@@ -141,6 +163,7 @@ export default function ExploreKnowledgeScreen() {
   const renderCategoryCard = (item: DrinkCategoryKnowledge) => {
     const isExpanded = expandedCategoryId === item.id;
     const currentTab = activeSubTabs[item.id] || 'origin';
+    const displayArchetype = translateArchetype(item.archetype);
 
     return (
       <View
@@ -159,7 +182,7 @@ export default function ExploreKnowledgeScreen() {
           style={styles.bannerTouchable}>
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: item.bannerImage }}
+              source={item.bannerImage}
               style={styles.bannerImage}
               contentFit="cover"
               transition={200}
@@ -178,7 +201,7 @@ export default function ExploreKnowledgeScreen() {
                 <View style={[styles.archetypeBadge, { backgroundColor: colors.secondaryFixed }]}>
                   <Text style={styles.badgeEmoji}>{item.icon}</Text>
                   <Text style={[styles.badgeText, { color: colors.onSecondaryFixed }]}>
-                    {item.archetype}
+                    {displayArchetype}
                   </Text>
                 </View>
                 <View
@@ -221,23 +244,29 @@ export default function ExploreKnowledgeScreen() {
             },
           ]}>
           <View style={styles.quickInfoItem}>
-            <Text style={[styles.quickInfoLabel, { color: colors.textSecondary }]}>ORIGIN</Text>
+            <Text style={[styles.quickInfoLabel, { color: colors.textSecondary }]}>
+              {german ? 'HERKUNFT' : 'ORIGIN'}
+            </Text>
             <Text style={[styles.quickInfoValue, { color: colors.text }]} numberOfLines={1}>
               {item.origin.era.split('(')[0].trim()}
             </Text>
           </View>
           <View style={[styles.quickInfoDivider, { backgroundColor: colors.outlineVariant }]} />
           <View style={styles.quickInfoItem}>
-            <Text style={[styles.quickInfoLabel, { color: colors.textSecondary }]}>REGION</Text>
+            <Text style={[styles.quickInfoLabel, { color: colors.textSecondary }]}>
+              {german ? 'REGION' : 'REGION'}
+            </Text>
             <Text style={[styles.quickInfoValue, { color: colors.text }]} numberOfLines={1}>
               {item.origin.region.split('&')[0].split('(')[0].trim()}
             </Text>
           </View>
           <View style={[styles.quickInfoDivider, { backgroundColor: colors.outlineVariant }]} />
           <View style={styles.quickInfoItem}>
-            <Text style={[styles.quickInfoLabel, { color: colors.textSecondary }]}>STYLES</Text>
+            <Text style={[styles.quickInfoLabel, { color: colors.textSecondary }]}>
+              {german ? 'STILE' : 'STYLES'}
+            </Text>
             <Text style={[styles.quickInfoValue, { color: colors.text }]} numberOfLines={1}>
-              {item.styles.length} Major Styles
+              {item.styles.length} {german ? 'Hauptstile' : 'Major Styles'}
             </Text>
           </View>
         </View>
@@ -250,12 +279,12 @@ export default function ExploreKnowledgeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.subTabsScrollContainer}>
-              {renderSectionTabButton(item.id, 'origin', 'Origin & History', '📜')}
-              {renderSectionTabButton(item.id, 'production', 'Craft & Process', '🔬')}
-              {renderSectionTabButton(item.id, 'styles', 'Styles & Varieties', '🏷️')}
-              {renderSectionTabButton(item.id, 'sensory', 'Tasting & Aroma', '👃')}
-              {renderSectionTabButton(item.id, 'serving', 'Serving & Glass', '🧊')}
-              {renderSectionTabButton(item.id, 'facts', 'Trivia & Facts', '💡')}
+              {renderSectionTabButton(item.id, 'origin', t('explore.subtabs.origin'), '📜')}
+              {renderSectionTabButton(item.id, 'production', t('explore.subtabs.production'), '🔬')}
+              {renderSectionTabButton(item.id, 'styles', t('explore.subtabs.styles'), '🏷️')}
+              {renderSectionTabButton(item.id, 'sensory', t('explore.subtabs.sensory'), '👃')}
+              {renderSectionTabButton(item.id, 'serving', t('explore.subtabs.serving'), '🧊')}
+              {renderSectionTabButton(item.id, 'facts', t('explore.subtabs.facts'), '💡')}
             </ScrollView>
 
             {/* TAB 1: Origin & History */}
@@ -267,7 +296,7 @@ export default function ExploreKnowledgeScreen() {
                     { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant },
                   ]}>
                   <Text style={[styles.infoHighlightLabel, { color: colors.secondary }]}>
-                    HISTORICAL ERA & ROOTS
+                    {german ? 'HISTORISCHE EPOCHE & URSPRUNG' : 'HISTORICAL ERA & ROOTS'}
                   </Text>
                   <Text style={[styles.infoHighlightMain, { color: colors.text }]}>
                     {item.origin.era}
@@ -284,7 +313,7 @@ export default function ExploreKnowledgeScreen() {
                 </View>
 
                 <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  Historical Timeline & Milestones
+                  {german ? 'Historischer Zeitstrahl & Meilensteine' : 'Historical Timeline & Milestones'}
                 </Text>
                 <View style={styles.timelineContainer}>
                   {item.origin.milestones.map((m, idx) => (
@@ -329,7 +358,7 @@ export default function ExploreKnowledgeScreen() {
             {currentTab === 'production' && (
               <View style={styles.sectionBody}>
                 <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  Essential Ingredients
+                  {german ? 'Wesentliche Zutaten' : 'Essential Ingredients'}
                 </Text>
                 <View style={styles.ingredientsPillsWrap}>
                   {item.production.ingredients.map((ing, idx) => (
@@ -351,7 +380,7 @@ export default function ExploreKnowledgeScreen() {
                     styles.subsectionTitle,
                     { color: colors.primary, marginTop: Spacing.four },
                   ]}>
-                  Crafting & Production Journey
+                  {german ? 'Herstellung & Veredelungsprozess' : 'Crafting & Production Journey'}
                 </Text>
                 <View style={styles.processStepsContainer}>
                   {item.production.steps.map((st, idx) => (
@@ -384,7 +413,7 @@ export default function ExploreKnowledgeScreen() {
                       },
                     ]}>
                     <Text style={[styles.craftTriviaTitle, { color: colors.secondary }]}>
-                      ✨ Master Craftsman Insight
+                      {german ? '✨ Meister-Handwerkswissen' : '✨ Master Craftsman Insight'}
                     </Text>
                     <Text style={[styles.craftTriviaText, { color: colors.text }]}>
                       {item.production.craftTrivia}
@@ -398,7 +427,7 @@ export default function ExploreKnowledgeScreen() {
             {currentTab === 'styles' && (
               <View style={styles.sectionBody}>
                 <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  Key Styles & Profiles
+                  {german ? 'Wichtige Stile & Profile' : 'Key Styles & Profiles'}
                 </Text>
                 <View style={styles.stylesList}>
                   {item.styles.map((styleItem, idx) => (
@@ -457,7 +486,7 @@ export default function ExploreKnowledgeScreen() {
             {currentTab === 'sensory' && (
               <View style={styles.sectionBody}>
                 <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  Signature Aroma Spectrum
+                  {german ? 'Typisches Aromenspektrum' : 'Signature Aroma Spectrum'}
                 </Text>
                 <View style={styles.aromaTagsWrap}>
                   {item.sensoryProfile.keyAromas.map((aroma, idx) => (
@@ -484,7 +513,7 @@ export default function ExploreKnowledgeScreen() {
                     },
                   ]}>
                   <Text style={[styles.tastingCalloutLabel, { color: colors.secondary }]}>
-                    FLAVOR DIMENSIONS & PALATE BALANCE
+                    {german ? 'GESCHMACKSDIMENSIONEN & GAUMENBALANCE' : 'FLAVOR DIMENSIONS & PALATE BALANCE'}
                   </Text>
                   <Text style={[styles.tastingCalloutText, { color: colors.text }]}>
                     {item.sensoryProfile.flavorCharacteristics}
@@ -501,7 +530,7 @@ export default function ExploreKnowledgeScreen() {
                     },
                   ]}>
                   <Text style={[styles.tastingCalloutLabel, { color: colors.primary }]}>
-                    HOW TO TASTE & EVALUATE
+                    {german ? 'VERKOSTUNGSTECHNIK & BEWERTUNG' : 'HOW TO TASTE & EVALUATE'}
                   </Text>
                   <Text style={[styles.tastingCalloutText, { color: colors.text }]}>
                     {item.sensoryProfile.tastingTechnique}
@@ -522,7 +551,7 @@ export default function ExploreKnowledgeScreen() {
                     },
                   ]}>
                   <Text style={[styles.servingTempLabel, { color: colors.secondary }]}>
-                    🌡️ OPTIMAL SERVING TEMPERATURE
+                    🌡️ {german ? 'OPTIMALE SERVIERTEMPERATUR' : 'OPTIMAL SERVING TEMPERATURE'}
                   </Text>
                   <Text style={[styles.servingTempValue, { color: colors.text }]}>
                     {item.serving.idealTemperature}
@@ -534,7 +563,7 @@ export default function ExploreKnowledgeScreen() {
                     styles.subsectionTitle,
                     { color: colors.primary, marginTop: Spacing.four },
                   ]}>
-                  Recommended Glassware
+                  {german ? 'Empfohlene Gläser' : 'Recommended Glassware'}
                 </Text>
                 <View style={styles.glasswareList}>
                   {item.serving.glassware.map((glass, idx) => (
@@ -565,7 +594,7 @@ export default function ExploreKnowledgeScreen() {
                     },
                   ]}>
                   <Text style={[styles.proTipTitle, { color: colors.primary }]}>
-                    💡 Sommelier & Cellar Pro-Tip
+                    💡 {german ? 'Sommelier- & Keller-Profi-Tipp' : 'Sommelier & Cellar Pro-Tip'}
                   </Text>
                   <Text style={[styles.proTipText, { color: colors.text }]}>
                     {item.serving.proTips}
@@ -578,7 +607,7 @@ export default function ExploreKnowledgeScreen() {
             {currentTab === 'facts' && (
               <View style={styles.sectionBody}>
                 <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  Intriguing Beverage Lore & Trivia
+                  {german ? 'Faszinierende Getränke-Fakten & Trivia' : 'Intriguing Beverage Lore & Trivia'}
                 </Text>
                 <View style={styles.factsList}>
                   {item.funFacts.map((fact, idx) => (
@@ -627,7 +656,7 @@ export default function ExploreKnowledgeScreen() {
                 onPress={() => router.push('/new-entry')}
                 style={[styles.quickLogButton, { backgroundColor: colors.primary }]}>
                 <Text style={[styles.quickLogButtonText, { color: colors.onPrimary }]}>
-                  + Log a {item.archetype} to Diary
+                  {german ? `+ ${displayArchetype} ins Tagebuch eintragen` : `+ Log a ${item.archetype} to Diary`}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -639,6 +668,10 @@ export default function ExploreKnowledgeScreen() {
 
   return (
     <ScrollView
+      ref={scrollViewRef}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets={true}
+      keyboardDismissMode="on-drag"
       style={[styles.scrollView, { backgroundColor: theme.background }]}
       contentInset={insets}
       contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -648,14 +681,14 @@ export default function ExploreKnowledgeScreen() {
         <ThemedView style={styles.header}>
           <View style={styles.headerTitleRow}>
             <View style={[styles.titleIconBadge, { backgroundColor: colors.secondaryFixed }]}>
-              <Text style={styles.titleIconText}>📚</Text>
+              <Text style={styles.titleIconText}>📖</Text>
             </View>
             <View style={styles.titleTextCol}>
               <ThemedText type="subtitle" style={styles.screenMainTitle}>
-                Drink Encyclopedia
+                {german ? 'Getränke-Enzyklopädie' : 'Drink Encyclopedia'}
               </ThemedText>
               <ThemedText style={styles.screenSubtitle} themeColor="textSecondary">
-                History, origins, brewing traditions & tasting guides
+                {german ? 'Geschichte, Herkunft, Brautraditionen & Verkostungs-Guides' : 'History, origins, brewing traditions & tasting guides'}
               </ThemedText>
             </View>
           </View>
@@ -676,10 +709,14 @@ export default function ExploreKnowledgeScreen() {
             />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Search origins, styles, aromas, ingredients..."
+              placeholder={t('explore.searchPlaceholder')}
               placeholderTextColor={colors.textSecondary}
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onFocus={() => scrollViewRef.current?.scrollTo({ y: 0, animated: true })}
+              onChangeText={(text) => {
+                setSearchQuery(text);
+                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+              }}
               clearButtonMode="while-editing"
             />
             {searchQuery.length > 0 && (
@@ -724,7 +761,7 @@ export default function ExploreKnowledgeScreen() {
                         fontWeight: isSelected ? '700' : '500',
                       },
                     ]}>
-                    {cat}
+                    {cat === 'All' ? t('common.allShort') : translateArchetype(cat)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -742,10 +779,12 @@ export default function ExploreKnowledgeScreen() {
               ]}>
               <Text style={styles.emptyStateEmoji}>🔍</Text>
               <Text style={[styles.emptyStateTitle, { color: colors.text }]}>
-                No knowledge articles match
+                {german ? 'Keine passenden Artikel gefunden' : 'No knowledge articles match'}
               </Text>
               <Text style={[styles.emptyStateSubtitle, { color: colors.textSecondary }]}>
-                Try adjusting your search query &apos;{searchQuery}&apos; or resetting category filters.
+                {german
+                  ? `Passe deine Suchanfrage '${searchQuery}' an oder setze die Filter zurück.`
+                  : `Try adjusting your search query '${searchQuery}' or resetting category filters.`}
               </Text>
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -755,7 +794,7 @@ export default function ExploreKnowledgeScreen() {
                 }}
                 style={[styles.resetFilterButton, { backgroundColor: colors.surfaceContainerHighest }]}>
                 <Text style={[styles.resetFilterButtonText, { color: colors.primary }]}>
-                  Reset All Filters
+                  {german ? 'Alle Filter zurücksetzen' : 'Reset All Filters'}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -1,21 +1,30 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
   Alert,
   useColorScheme,
+  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, MaxContentWidth } from '@/constants/theme';
 import { getDrinkEntryById, deleteDrinkEntry } from '@/services/storage';
 import { DrinkEntry } from '@/types/drink';
 import { SCORE_DESCRIPTIONS } from '@/components/rating-selector';
+import {
+  translateArchetype,
+  translateSubtype,
+  translateScoreDescription,
+  translateSensoryTag,
+  formatDate,
+  isGerman,
+} from '@/i18n';
 
 const ARCHETYPE_ICONS: Record<string, string> = {
   Wine: '🍷',
@@ -35,13 +44,14 @@ const CATEGORY_META: Record<string, { title: string; subtitle: string; icon: str
   Finish: { title: 'Finish & Length', subtitle: 'Lingering Impression', icon: '✨' },
 };
 
-const DEFAULT_ENTRY_IMAGE =
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1200&q=80';
+const DEFAULT_ENTRY_IMAGE = require('@/assets/images/drinks/wine.jpg');
 
 export default function EntryDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
   const entryId = params.id;
+  const { t } = useTranslation();
+  const german = isGerman();
 
   const scheme = useColorScheme();
   const insets = useSafeAreaInsets();
@@ -50,6 +60,7 @@ export default function EntryDetailScreen() {
   const [entry, setEntry] = useState<DrinkEntry | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const loadEntry = useCallback(async () => {
     if (!entryId) {
@@ -64,6 +75,12 @@ export default function EntryDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       loadEntry();
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.scrollTo(0, 0);
+        document.documentElement?.scrollTo?.(0, 0);
+        document.body?.scrollTo?.(0, 0);
+      }
     }, [loadEntry])
   );
 
@@ -75,12 +92,12 @@ export default function EntryDetailScreen() {
   const handleDelete = () => {
     if (!entry) return;
     Alert.alert(
-      'Delete Entry',
-      `Are you sure you want to permanently remove "${entry.name}" from your diary?`,
+      t('entryDetail.deleteTitle'),
+      t('entryDetail.deleteMessage', { name: entry.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -92,7 +109,7 @@ export default function EntryDetailScreen() {
               }
             } catch (err) {
               console.error('Failed to delete entry:', err);
-              Alert.alert('Error', 'Failed to delete the entry. Please try again.');
+              Alert.alert(t('entryDetail.deleteErrorTitle'), t('entryDetail.deleteErrorMessage'));
             }
           },
         },
@@ -111,7 +128,7 @@ export default function EntryDetailScreen() {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading journal entry...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('entryDetail.loading')}</Text>
       </View>
     );
   }
@@ -120,28 +137,30 @@ export default function EntryDetailScreen() {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <Text style={styles.notFoundIcon}>🍷</Text>
-        <Text style={[styles.notFoundTitle, { color: colors.primary }]}>Entry Not Found</Text>
+        <Text style={[styles.notFoundTitle, { color: colors.primary }]}>{t('entryDetail.notFoundTitle')}</Text>
         <Text style={[styles.notFoundSubtitle, { color: colors.textSecondary }]}>
-          This tasting entry may have been removed or does not exist.
+          {t('entryDetail.notFoundSubtitle')}
         </Text>
         <TouchableOpacity
           onPress={handleBack}
           style={[styles.notFoundButton, { backgroundColor: colors.primaryContainer }]}>
-          <Text style={[styles.notFoundButtonText, { color: colors.onPrimary }]}>Return to Diary</Text>
+          <Text style={[styles.notFoundButtonText, { color: colors.onPrimary }]}>{t('entryDetail.returnToDiary')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   const images = entry.images && entry.images.length > 0 ? entry.images : [DEFAULT_ENTRY_IMAGE];
-  const dateFormatted = new Date(entry.createdAt).toLocaleDateString(undefined, {
+  const dateFormatted = formatDate(entry.createdAt, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
     year: 'numeric',
   });
-  const descriptor = SCORE_DESCRIPTIONS[entry.rating] || `${entry.rating}.0`;
+  const descriptor = translateScoreDescription(entry.rating) || SCORE_DESCRIPTIONS[entry.rating] || `${entry.rating}.0`;
   const locationText = [entry.city, entry.country].filter(Boolean).join(', ');
+  const displayArchetype = translateArchetype(entry.archetype);
+  const displaySubtype = entry.subtype ? translateSubtype(entry.archetype, entry.subtype) : '';
 
   // Group sensory descriptors by category
   const groupedDescriptors = (entry.sensoryDescriptors || []).reduce<Record<string, NonNullable<typeof entry.sensoryDescriptors>>>(
@@ -156,53 +175,8 @@ export default function EntryDetailScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      {/* Top Header */}
-      {/*< View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + (Platform.OS === 'web' ? 16 : 8),
-            backgroundColor: colors.background,
-            borderBottomColor: colors.surfaceContainerHigh,
-          },
-        ]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={handleBack}
-            style={[styles.headerIconButton, { backgroundColor: colors.surfaceContainerLow }]}
-            accessibilityLabel="Go back"
-            accessibilityRole="button">
-            <Text style={[styles.headerIconText, { color: colors.primary }]}>←</Text>
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerSubtitle, { color: colors.secondary }]}>CELLAR RECORD</Text>
-            <Text style={[styles.headerTitle, { color: colors.primary }]} numberOfLines={1}>
-              {entry.name}
-            </Text>
-          </View>
-
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={handleEdit}
-              style={[styles.headerActionButton, { backgroundColor: colors.surfaceContainerLow }]}
-              accessibilityLabel="Edit entry"
-              accessibilityRole="button">
-              <Text style={[styles.editBtnText, { color: colors.primary }]}>✎ Edit</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleDelete}
-              style={[styles.headerActionButton, { backgroundColor: colors.surfaceContainerLow }]}
-              accessibilityLabel="Delete entry"
-              accessibilityRole="button">
-              <Text style={[styles.deleteBtnText, { color: colors.outline }]}>🗑️</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-*/}
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={[
           styles.scrollContainer,
           {
@@ -214,7 +188,7 @@ export default function EntryDetailScreen() {
           {/* Hero Image Section */}
           <View style={[styles.heroImageContainer, { backgroundColor: colors.surfaceContainerLow }]}>
             <Image
-              source={{ uri: images[activeImageIndex] || DEFAULT_ENTRY_IMAGE }}
+              source={images[activeImageIndex] || DEFAULT_ENTRY_IMAGE}
               style={styles.heroImage}
               contentFit="cover"
             />
@@ -224,8 +198,8 @@ export default function EntryDetailScreen() {
             <View style={styles.heroBadgesRow}>
               <View style={styles.archetypeBadge}>
                 <Text style={styles.archetypeBadgeText}>
-                  {ARCHETYPE_ICONS[entry.archetype] || '✨'} {entry.archetype}
-                  {entry.subtype ? ` • ${entry.subtype}` : ''}
+                  {ARCHETYPE_ICONS[entry.archetype] || '✨'} {displayArchetype}
+                  {displaySubtype ? ` • ${displaySubtype}` : ''}
                 </Text>
               </View>
 
@@ -269,7 +243,7 @@ export default function EntryDetailScreen() {
                       styles.thumbnailWrapper,
                       isSelected && [styles.thumbnailSelected, { borderColor: colors.primary }],
                     ]}>
-                    <Image source={{ uri: imgUri }} style={styles.thumbnailImage} contentFit="cover" />
+                    <Image source={imgUri} style={styles.thumbnailImage} contentFit="cover" />
                   </TouchableOpacity>
                 );
               })}
@@ -281,11 +255,11 @@ export default function EntryDetailScreen() {
             <View style={styles.titleMetaContainer}>
               <View>
                 <Text style={[styles.drinkTitle, { color: colors.primary }]}>{entry.name}</Text>
-                {entry.subtype ? (
+                {displaySubtype ? (
                   <View style={styles.subtypeBadgeContainer}>
                     <View style={[styles.subtypePill, { backgroundColor: colors.surfaceContainerHighest }]}>
                       <Text style={[styles.subtypePillText, { color: colors.primary }]}>
-                        {ARCHETYPE_ICONS[entry.archetype] || '✨'} {entry.archetype} • {entry.subtype}
+                        {ARCHETYPE_ICONS[entry.archetype] || '✨'} {displayArchetype} • {displaySubtype}
                       </Text>
                     </View>
                   </View>
@@ -296,11 +270,13 @@ export default function EntryDetailScreen() {
                 <View style={styles.metaRow}>
                   <Text style={styles.metaIcon}>🏷️</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Subtype / Style</Text>
+                    <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+                      {german ? 'Unterkategorie / Stil' : 'Subtype / Style'}
+                    </Text>
                     <Text style={[styles.metaValue, { color: colors.secondary }]}>
-                      {entry.subtype}{' '}
+                      {displaySubtype}{' '}
                       <Text style={{ color: colors.textSecondary, fontWeight: '400', fontSize: 13 }}>
-                        ({entry.archetype})
+                        ({displayArchetype})
                       </Text>
                     </Text>
                   </View>
@@ -309,8 +285,8 @@ export default function EntryDetailScreen() {
                 <View style={styles.metaRow}>
                   <Text style={styles.metaIcon}>🏷️</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Category</Text>
-                    <Text style={[styles.metaValue, { color: colors.secondary }]}>{entry.archetype}</Text>
+                    <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>{t('entryDetail.category')}</Text>
+                    <Text style={[styles.metaValue, { color: colors.secondary }]}>{displayArchetype}</Text>
                   </View>
                 </View>
               )}
@@ -319,7 +295,7 @@ export default function EntryDetailScreen() {
                 <View style={styles.metaRow}>
                   <Text style={styles.metaIcon}>🏛️</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Producer / Maker</Text>
+                    <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>{t('entryDetail.producer')}</Text>
                     <Text style={[styles.metaValue, { color: colors.secondary }]}>{entry.manufacturer}</Text>
                   </View>
                 </View>
@@ -329,7 +305,7 @@ export default function EntryDetailScreen() {
                 <View style={styles.metaRow}>
                   <Text style={styles.metaIcon}>📍</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Origin / Region</Text>
+                    <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>{t('entryDetail.origin')}</Text>
                     <Text style={[styles.metaValue, { color: colors.secondary }]}>{locationText}</Text>
                   </View>
                 </View>
@@ -338,7 +314,9 @@ export default function EntryDetailScreen() {
               <View style={styles.metaRow}>
                 <Text style={styles.metaIcon}>📅</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Tasting Date</Text>
+                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+                    {german ? 'Verkostungsdatum' : 'Tasting Date'}
+                  </Text>
                   <Text style={[styles.metaValue, { color: colors.textSecondary }]}>{dateFormatted}</Text>
                 </View>
               </View>
@@ -350,7 +328,7 @@ export default function EntryDetailScreen() {
             <View style={styles.ratingCardHeader}>
               <View>
                 <Text style={[styles.sectionSubLabel, { color: colors.textSecondary }]}>
-                  OVERALL APPRAISAL
+                  {t('rating.overallAppraisal')}
                 </Text>
                 <Text style={[styles.ratingDescriptorText, { color: colors.primary }]}>
                   {descriptor}
@@ -403,9 +381,9 @@ export default function EntryDetailScreen() {
             </View>
 
             <View style={styles.ratingScaleLabels}>
-              <Text style={[styles.scaleLabelText, { color: colors.textSecondary }]}>1.0 Flawed</Text>
-              <Text style={[styles.scaleLabelText, { color: colors.textSecondary }]}>5.0 Standard</Text>
-              <Text style={[styles.scaleLabelText, { color: colors.textSecondary }]}>10.0 Masterwork</Text>
+              <Text style={[styles.scaleLabelText, { color: colors.textSecondary }]}>1.0 {t('rating.subpar')}</Text>
+              <Text style={[styles.scaleLabelText, { color: colors.textSecondary }]}>5.0 {t('rating.benchmark')}</Text>
+              <Text style={[styles.scaleLabelText, { color: colors.textSecondary }]}>10.0 {t('rating.masterwork')}</Text>
             </View>
           </View>
 
@@ -414,10 +392,10 @@ export default function EntryDetailScreen() {
             <View style={[styles.sectionCard, { backgroundColor: colors.surfaceContainerLow }]}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={[styles.sectionSubLabel, { color: colors.textSecondary }]}>
-                  SENSORY IMPRESSIONS
+                  {t('entryDetail.sensoryImpressions')}
                 </Text>
                 <Text style={[styles.sectionCountText, { color: colors.secondary }]}>
-                  {entry.sensoryDescriptors.length} notes identified
+                  {entry.sensoryDescriptors.length} {german ? (entry.sensoryDescriptors.length === 1 ? 'Eindruck erfasst' : 'Eindrücke erfasst') : (entry.sensoryDescriptors.length === 1 ? 'note identified' : 'notes identified')}
                 </Text>
               </View>
 
@@ -427,12 +405,13 @@ export default function EntryDetailScreen() {
                   subtitle: 'Sensory notes',
                   icon: '✨',
                 };
+                const catTitle = t(`sensory.categories.${category}.detailTitle`, { defaultValue: meta.title });
                 return (
                   <View key={category} style={styles.sensoryCategoryBlock}>
                     <View style={styles.sensoryCategoryHeader}>
                       <Text style={styles.sensoryCategoryIcon}>{meta.icon}</Text>
                       <Text style={[styles.sensoryCategoryTitle, { color: colors.primary }]}>
-                        {meta.title}
+                        {catTitle}
                       </Text>
                     </View>
 
@@ -445,7 +424,7 @@ export default function EntryDetailScreen() {
                             { backgroundColor: colors.surfaceContainerLowest, borderColor: colors.surfaceContainerHigh },
                           ]}>
                           <Text style={[styles.sensoryChipName, { color: colors.text }]}>
-                            {desc.name}
+                            {translateSensoryTag(desc.name)}
                           </Text>
                           {desc.intensity ? (
                             <View style={[styles.intensityBadge, { backgroundColor: colors.surfaceContainerHighest }]}>
@@ -468,7 +447,7 @@ export default function EntryDetailScreen() {
           {entry.notes ? (
             <View style={[styles.sectionCard, { backgroundColor: colors.surfaceContainerLow }]}>
               <Text style={[styles.sectionSubLabel, { color: colors.textSecondary }]}>
-                CELLAR & PAIRING MEMO
+                {german ? 'VERKOSTUNGSNOTIZEN & KOMMENTAR' : 'CELLAR & PAIRING MEMO'}
               </Text>
               <View style={[styles.notesCard, { backgroundColor: colors.surfaceContainerLowest }]}>
                 <Text style={[styles.notesQuoteMark, { color: colors.primary }]}>“</Text>
@@ -483,14 +462,18 @@ export default function EntryDetailScreen() {
               activeOpacity={0.85}
               onPress={handleEdit}
               style={[styles.primaryActionButton, { backgroundColor: colors.primaryContainer }]}>
-              <Text style={[styles.primaryActionText, { color: colors.onPrimary }]}>✎ Edit Entry</Text>
+              <Text style={[styles.primaryActionText, { color: colors.onPrimary }]}>
+                {german ? '✎ Eintrag bearbeiten' : '✎ Edit Entry'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleDelete}
               style={[styles.deleteActionButton, { borderColor: colors.outlineVariant }]}>
-              <Text style={[styles.deleteActionText, { color: '#ba1a1a' }]}>🗑️ Delete Entry</Text>
+              <Text style={[styles.deleteActionText, { color: '#ba1a1a' }]}>
+                {german ? '🗑️ Eintrag löschen' : '🗑️ Delete Entry'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

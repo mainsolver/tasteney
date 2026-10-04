@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,18 @@ import {
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
 import { getDrinkEntries, deleteDrinkEntry } from '@/services/storage';
 import { DrinkEntry } from '@/types/drink';
 import { SCORE_DESCRIPTIONS } from '@/components/rating-selector';
+import {
+  translateArchetype,
+  translateSubtype,
+  translateScoreDescription,
+  translateSensoryTag,
+  formatDate,
+} from '@/i18n';
 
 const ARCHETYPE_ICONS: Record<string, string> = {
   Wine: '🍷',
@@ -30,19 +38,20 @@ const ARCHETYPE_ICONS: Record<string, string> = {
   Other: '✨',
 };
 
-const DEFAULT_ENTRY_IMAGE =
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80';
+const DEFAULT_ENTRY_IMAGE = require('@/assets/images/drinks/wine.jpg');
 
 export default function DiaryHomeScreen() {
   const router = useRouter();
   const scheme = useColorScheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
   const [entries, setEntries] = useState<DrinkEntry[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const flatListRef = useRef<FlatList<DrinkEntry>>(null);
 
   const loadEntries = async () => {
     const data = await getDrinkEntries();
@@ -52,6 +61,12 @@ export default function DiaryHomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadEntries();
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.scrollTo(0, 0);
+        document.documentElement?.scrollTo?.(0, 0);
+        document.body?.scrollTo?.(0, 0);
+      }
     }, [])
   );
 
@@ -63,12 +78,12 @@ export default function DiaryHomeScreen() {
 
   const handleDelete = (id: string, name: string) => {
     Alert.alert(
-      'Delete Entry',
-      `Are you sure you want to remove "${name}" from your diary?`,
+      t('diary.deleteTitle'),
+      t('diary.deleteMessage', { name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             await deleteDrinkEntry(id);
@@ -82,13 +97,17 @@ export default function DiaryHomeScreen() {
   const filteredEntries = entries.filter((item) => {
     const matchesCategory = selectedCategory === 'All' || item.archetype === selectedCategory;
     const query = searchQuery.trim().toLowerCase();
+    const translatedArchetype = translateArchetype(item.archetype).toLowerCase();
+    const translatedSubtype = item.subtype ? translateSubtype(item.archetype, item.subtype).toLowerCase() : '';
     const matchesQuery =
       query === '' ||
       item.name.toLowerCase().includes(query) ||
       item.manufacturer.toLowerCase().includes(query) ||
+      item.archetype.toLowerCase().includes(query) ||
+      translatedArchetype.includes(query) ||
       (item.country ? item.country.toLowerCase().includes(query) : false) ||
       (item.city ? item.city.toLowerCase().includes(query) : false) ||
-      (item.subtype ? item.subtype.toLowerCase().includes(query) : false) ||
+      (item.subtype ? item.subtype.toLowerCase().includes(query) || translatedSubtype.includes(query) : false) ||
       item.notes.toLowerCase().includes(query);
     return matchesCategory && matchesQuery;
   });
@@ -97,13 +116,15 @@ export default function DiaryHomeScreen() {
 
   const renderItem = ({ item }: { item: DrinkEntry }) => {
     const displayImage = item.images && item.images.length > 0 ? item.images[0] : DEFAULT_ENTRY_IMAGE;
-    const dateFormatted = new Date(item.createdAt).toLocaleDateString(undefined, {
+    const dateFormatted = formatDate(item.createdAt, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
-    const descriptor = SCORE_DESCRIPTIONS[item.rating] || `${item.rating}.0`;
+    const descriptor = translateScoreDescription(item.rating) || SCORE_DESCRIPTIONS[item.rating] || `${item.rating}.0`;
     const locationText = [item.city, item.country].filter(Boolean).join(', ');
+    const displayArchetype = translateArchetype(item.archetype);
+    const displaySubtype = item.subtype ? translateSubtype(item.archetype, item.subtype) : '';
 
     return (
       <TouchableOpacity
@@ -112,15 +133,15 @@ export default function DiaryHomeScreen() {
         style={[styles.card, { backgroundColor: colors.surfaceContainerLow }]}>
         {/* Card Image Banner */}
         <View style={styles.cardImageContainer}>
-          <Image source={{ uri: displayImage }} style={styles.cardImage} contentFit="cover" />
+          <Image source={displayImage} style={styles.cardImage} contentFit="cover" />
           <View style={styles.imageOverlay} />
 
           {/* Archetype & Image count badge */}
           <View style={styles.cardHeaderBadges}>
             <View style={styles.archetypeBadge}>
               <Text style={styles.archetypeBadgeText}>
-                {ARCHETYPE_ICONS[item.archetype] || '✨'} {item.archetype}
-                {item.subtype ? ` • ${item.subtype}` : ''}
+                {ARCHETYPE_ICONS[item.archetype] || '✨'} {displayArchetype}
+                {displaySubtype ? ` • ${displaySubtype}` : ''}
               </Text>
             </View>
 
@@ -143,11 +164,11 @@ export default function DiaryHomeScreen() {
           <View style={styles.cardTitleRow}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.cardTitle, { color: colors.primary }]}>{item.name}</Text>
-              {item.subtype ? (
+              {displaySubtype ? (
                 <View style={styles.subtypeBadgeRow}>
                   <View style={[styles.subtypePill, { backgroundColor: colors.surfaceContainerHighest }]}>
                     <Text style={[styles.subtypePillText, { color: colors.primary }]}>
-                      {item.subtype}
+                      {displaySubtype}
                     </Text>
                   </View>
                 </View>
@@ -204,7 +225,7 @@ export default function DiaryHomeScreen() {
                     key={desc.id}
                     style={[styles.descriptorChip, { backgroundColor: colors.surfaceContainerHighest }]}>
                     <Text style={[styles.descriptorChipText, { color: colors.primary }]}>
-                      {categoryIcon} {desc.name}
+                      {categoryIcon} {translateSensoryTag(desc.name)}
                       {desc.intensity ? ` • ${desc.intensity}/5` : ''}
                     </Text>
                   </View>
@@ -240,15 +261,15 @@ export default function DiaryHomeScreen() {
         ]}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={[styles.journalSub, { color: colors.secondary }]}>EPICUREAN DIARY</Text>
-            <Text style={[styles.journalTitle, { color: colors.primary }]}>Tasteney Journal</Text>
+            <Text style={[styles.journalSub, { color: colors.secondary }]}>{t('diary.journalSubtitle')}</Text>
+            <Text style={[styles.journalTitle, { color: colors.primary }]}>{t('diary.title')}</Text>
           </View>
 
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => router.push('/new-entry')}
             style={[styles.addDrinkHeaderBtn, { backgroundColor: colors.primaryContainer }]}>
-            <Text style={[styles.addDrinkIcon, { color: colors.secondaryFixed }]}>+ Log Drink</Text>
+            <Text style={[styles.addDrinkIcon, { color: colors.secondaryFixed }]}>{t('diary.addDrink')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -256,10 +277,14 @@ export default function DiaryHomeScreen() {
         <View style={[styles.searchBar, { backgroundColor: colors.surfaceContainerLow }]}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
-            placeholder="Search drinks, producers, tasting notes..."
+            placeholder={t('diary.searchPlaceholder')}
             placeholderTextColor="rgba(85, 66, 67, 0.45)"
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onFocus={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+            }}
             style={[styles.searchInput, { color: colors.text }]}
           />
           {searchQuery ? (
@@ -292,7 +317,7 @@ export default function DiaryHomeScreen() {
                     styles.categoryPillText,
                     isSelected ? { color: colors.onPrimary, fontWeight: '700' } : { color: colors.textSecondary },
                   ]}>
-                  {item === 'All' ? '🌟 All Drinks' : `${ARCHETYPE_ICONS[item] || ''} ${item}`}
+                  {item === 'All' ? t('common.allDrinks') : `${ARCHETYPE_ICONS[item] || ''} ${translateArchetype(item)}`}
                 </Text>
               </TouchableOpacity>
             );
@@ -302,6 +327,10 @@ export default function DiaryHomeScreen() {
 
       {/* Main List */}
       <FlatList
+        ref={flatListRef}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={true}
+        keyboardDismissMode="on-drag"
         data={filteredEntries}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
@@ -315,11 +344,11 @@ export default function DiaryHomeScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>🍷</Text>
-            <Text style={[styles.emptyTitle, { color: colors.primary }]}>No Tasting Entries Yet</Text>
+            <Text style={[styles.emptyTitle, { color: colors.primary }]}>{t('diary.emptyTitle')}</Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               {searchQuery || selectedCategory !== 'All'
-                ? 'No drink matches your filter criteria.'
-                : 'Start logging your beverage experiences, ratings, images, and tasting impressions.'}
+                ? t('diary.emptyFilterSubtitle')
+                : t('diary.emptyInitialSubtitle')}
             </Text>
 
             <TouchableOpacity
@@ -327,7 +356,7 @@ export default function DiaryHomeScreen() {
               onPress={() => router.push('/new-entry')}
               style={[styles.emptyButton, { backgroundColor: colors.primaryContainer }]}>
               <Text style={[styles.emptyButtonText, { color: colors.onPrimary }]}>
-                + Log Your First Drink
+                {t('diary.emptyButton')}
               </Text>
             </TouchableOpacity>
           </View>

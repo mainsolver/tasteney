@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
+import { isGerman } from '@/i18n';
 
 interface ImageSelectorProps {
   images: string[];
@@ -20,12 +22,13 @@ interface ImageSelectorProps {
   onImagesAdded?: (assets: ImagePicker.ImagePickerAsset[]) => void;
 }
 
-const DEFAULT_FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1200&q=80';
+const DEFAULT_FALLBACK_IMAGE = require('@/assets/images/drinks/wine.jpg');
 
 export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSelectorProps) {
   const scheme = useColorScheme();
+  const { t } = useTranslation();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
+  const german = isGerman();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const handlePickFromLibrary = async () => {
@@ -33,8 +36,8 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Needed',
-          'Please allow access to your photo library to attach photos of your drink.'
+          t('image.permissionNeeded'),
+          t('image.libraryPermission')
         );
         return;
       }
@@ -55,7 +58,7 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
       }
     } catch (error) {
       console.error('Error selecting photos:', error);
-      Alert.alert('Error', 'Could not open photo library.');
+      Alert.alert(t('common.error'), t('image.libraryError'));
     }
   };
 
@@ -64,8 +67,8 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Needed',
-          'Please allow camera access to take a photo of your drink.'
+          t('image.permissionNeeded'),
+          t('image.cameraPermission')
         );
         return;
       }
@@ -84,7 +87,7 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
       }
     } catch (error) {
       console.error('Error taking photo:', error);
-      Alert.alert('Error', 'Could not access camera.');
+      Alert.alert(t('common.error'), t('image.cameraError'));
     }
   };
 
@@ -92,7 +95,7 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          options: [t('common.cancel'), t('image.takePhoto'), t('image.chooseFromLibrary')],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
@@ -104,10 +107,10 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
         }
       );
     } else {
-      Alert.alert('Add Photo', 'Choose an option to add drink images', [
-        { text: 'Take Photo', onPress: handleTakePhoto },
-        { text: 'Choose from Library', onPress: handlePickFromLibrary },
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('image.dialogTitle'), t('image.dialogSubtitle'), [
+        { text: t('image.takePhoto'), onPress: handleTakePhoto },
+        { text: t('image.chooseFromLibrary'), onPress: handlePickFromLibrary },
+        { text: t('common.cancel'), style: 'cancel' },
       ]);
     }
   };
@@ -127,17 +130,19 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-          VISUAL RECORD
+          {german ? 'FOTOAUFNAHMEN' : 'VISUAL RECORD'}
         </Text>
         <Text style={[styles.subHint, { color: colors.secondary }]}>
-          {images.length > 0 ? `${images.length} photo${images.length > 1 ? 's' : ''} attached` : 'Add photos'}
+          {images.length > 0
+            ? (german ? `${images.length} Foto${images.length > 1 ? 's' : ''} angehängt` : `${images.length} photo${images.length > 1 ? 's' : ''} attached`)
+            : t('image.addPhotos')}
         </Text>
       </View>
 
       {/* Main Image Banner Card */}
       <View style={[styles.showcaseCard, { backgroundColor: colors.surfaceContainerLow }]}>
         <Image
-          source={{ uri: activeDisplayUri }}
+          source={activeDisplayUri}
           style={styles.showcaseImage}
           contentFit="cover"
           transition={300}
@@ -148,7 +153,9 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
         <View style={styles.floatingControls}>
           <View style={styles.tagBadge}>
             <Text style={styles.tagBadgeText}>
-              {isCustomImage ? `PHOTO ${activeImageIndex + 1} OF ${images.length}` : 'SAMPLE PREVIEW'}
+              {isCustomImage
+                ? (german ? `FOTO ${activeImageIndex + 1} VON ${images.length}` : `PHOTO ${activeImageIndex + 1} OF ${images.length}`)
+                : (german ? 'BEISPIELVORSCHAU' : 'SAMPLE PREVIEW')}
             </Text>
           </View>
 
@@ -158,7 +165,9 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
               onPress={showPhotoOptions}
               style={[styles.glassButton, { backgroundColor: 'rgba(255, 255, 255, 0.92)' }]}>
               <Text style={[styles.glassButtonText, { color: colors.primary }]}>
-                {isCustomImage ? '+ Add Photo' : 'Attach Photo'}
+                {isCustomImage
+                  ? (german ? '+ Foto hinzufügen' : '+ Add Photo')
+                  : (german ? 'Foto anhängen' : 'Attach Photo')}
               </Text>
             </TouchableOpacity>
 
@@ -191,7 +200,7 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
                   styles.thumbnailWrapper,
                   isSelected && [styles.thumbnailSelected, { borderColor: colors.primaryContainer }],
                 ]}>
-                <Image source={{ uri }} style={styles.thumbnailImage} contentFit="cover" />
+                <Image source={uri} style={styles.thumbnailImage} contentFit="cover" />
               </TouchableOpacity>
             );
           })}

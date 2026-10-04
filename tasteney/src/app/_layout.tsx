@@ -1,23 +1,35 @@
-import {DarkTheme, DefaultTheme, Stack, ThemeProvider} from 'expo-router';
+import { useEffect } from 'react';
+import { Platform, useColorScheme } from 'react-native';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import '@/i18n';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-import {Colors} from "@/constants/theme";
+import { Colors } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+export default function RootLayout() {
+  const pathname = usePathname();
   const colorScheme = useColorScheme();
-    const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+  const { t } = useTranslation();
+  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+      document.documentElement?.scrollTo?.(0, 0);
+      document.body?.scrollTo?.(0, 0);
+    }
+  }, [pathname]);
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="new-entry" options={{ title: 'Log Drink', headerBackTitle: 'Back', headerTintColor: colors.primary }} />
-            <Stack.Screen name="entry-detail" options={{ title: 'Log details' ,headerBackTitle: 'Back', headerTintColor: colors.primary }} />
-        </Stack>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="new-entry" options={{ title: t('nav.logDrink'), headerBackTitle: t('nav.back'), headerTintColor: colors.primary }} />
+        <Stack.Screen name="entry-detail" options={{ title: t('nav.logDetails'), headerBackTitle: t('nav.back'), headerTintColor: colors.primary }} />
+      </Stack>
     </ThemeProvider>
   );
 }
