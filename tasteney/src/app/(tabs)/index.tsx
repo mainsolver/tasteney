@@ -7,7 +7,6 @@ import {
   FlatList,
   useColorScheme,
   Platform,
-  TextInput,
   RefreshControl,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -15,6 +14,9 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
+import { Button } from '@/components/button';
+import { SearchBar } from '@/components/search-bar';
+import { CategoryPill } from '@/components/category-pill';
 import { getDrinkEntries } from '@/services/storage';
 import { DrinkEntry } from '@/types/drink';
 import {
@@ -22,6 +24,7 @@ import {
   translateSubtype,
   formatDate,
 } from '@/i18n';
+import { getArchetypeFallbackImage } from '@/constants/drink-images';
 
 const ARCHETYPE_ICONS: Record<string, string> = {
   Wine: '🍷',
@@ -33,8 +36,6 @@ const ARCHETYPE_ICONS: Record<string, string> = {
   Cocktail: '🍸',
   Other: '✨',
 };
-
-const DEFAULT_ENTRY_IMAGE = require('@/assets/images/drinks/wine.jpg');
 
 export default function DiaryHomeScreen() {
   const router = useRouter();
@@ -92,8 +93,22 @@ export default function DiaryHomeScreen() {
 
   const categories = ['All', 'Wine', 'Coffee', 'Spirits', 'Beer', 'Tea', 'Cocktail', 'Soda & Tonics', 'Other'];
 
+  const activeIcon = selectedCategory !== 'All' ? ARCHETYPE_ICONS[selectedCategory] || '✨' : '🍷';
+
+  const handleAddNewEntry = () => {
+    if (selectedCategory !== 'All') {
+      router.push({
+        pathname: '/new-entry',
+        params: { archetype: selectedCategory },
+      });
+    } else {
+      router.push('/new-entry');
+    }
+  };
+
   const renderItem = ({ item }: { item: DrinkEntry }) => {
-    const displayImage = item.images && item.images.length > 0 ? item.images[0] : DEFAULT_ENTRY_IMAGE;
+    const displayImage =
+      item.images && item.images.length > 0 ? item.images[0] : getArchetypeFallbackImage(item.archetype);
     const dateFormatted = formatDate(item.createdAt, {
       month: 'short',
       day: 'numeric',
@@ -179,34 +194,24 @@ export default function DiaryHomeScreen() {
             <Text style={[styles.journalTitle, { color: colors.primary }]}>{t('diary.title')}</Text>
           </View>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => router.push('/new-entry')}
-            style={[styles.addDrinkHeaderBtn, { backgroundColor: colors.primaryContainer }]}>
-            <Text style={[styles.addDrinkIcon, { color: colors.secondaryFixed }]}>{t('diary.addDrink')}</Text>
-          </TouchableOpacity>
+          <Button
+            variant="container"
+            size="sm"
+            title={t('diary.addDrink')}
+            onPress={handleAddNewEntry}
+          />
         </View>
 
         {/* Search Bar */}
-        <View style={[styles.searchBar, { backgroundColor: colors.surfaceContainerLow }]}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            placeholder={t('diary.searchPlaceholder')}
-            placeholderTextColor="rgba(85, 66, 67, 0.45)"
-            value={searchQuery}
-            onFocus={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}
-            onChangeText={(text) => {
-              setSearchQuery(text);
-              flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-            }}
-            style={[styles.searchInput, { color: colors.text }]}
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Text style={{ color: colors.textSecondary, paddingHorizontal: 4 }}>✕</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={(text) => {
+            setSearchQuery(text);
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+          }}
+          onFocus={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}
+          placeholder={t('diary.searchPlaceholder')}
+        />
 
         {/* Categories Bar */}
         <FlatList
@@ -218,22 +223,12 @@ export default function DiaryHomeScreen() {
           renderItem={({ item }) => {
             const isSelected = selectedCategory === item;
             return (
-              <TouchableOpacity
+              <CategoryPill
+                label={item === 'All' ? t('common.allDrinks') : translateArchetype(item)}
+                icon={item !== 'All' ? ARCHETYPE_ICONS[item] : undefined}
+                isSelected={isSelected}
                 onPress={() => setSelectedCategory(item)}
-                style={[
-                  styles.categoryPill,
-                  isSelected
-                    ? [styles.categoryPillSelected, { backgroundColor: colors.primary }]
-                    : [styles.categoryPillUnselected, { backgroundColor: colors.surfaceContainerLow }],
-                ]}>
-                <Text
-                  style={[
-                    styles.categoryPillText,
-                    isSelected ? { color: colors.onPrimary, fontWeight: '700' } : { color: colors.textSecondary },
-                  ]}>
-                  {item === 'All' ? t('common.allDrinks') : `${ARCHETYPE_ICONS[item] || ''} ${translateArchetype(item)}`}
-                </Text>
-              </TouchableOpacity>
+              />
             );
           }}
         />
@@ -257,7 +252,7 @@ export default function DiaryHomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🍷</Text>
+            <Text style={styles.emptyIcon}>{activeIcon}</Text>
             <Text style={[styles.emptyTitle, { color: colors.primary }]}>{t('diary.emptyTitle')}</Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               {searchQuery || selectedCategory !== 'All'
@@ -265,14 +260,16 @@ export default function DiaryHomeScreen() {
                 : t('diary.emptyInitialSubtitle')}
             </Text>
 
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push('/new-entry')}
-              style={[styles.emptyButton, { backgroundColor: colors.primaryContainer }]}>
-              <Text style={[styles.emptyButtonText, { color: colors.onPrimary }]}>
-                {t('diary.emptyButton')}
-              </Text>
-            </TouchableOpacity>
+            <Button
+              variant="container"
+              size="md"
+              title={
+                selectedCategory !== 'All'
+                  ? t('diary.emptyButtonCategory', { icon: activeIcon })
+                  : t('diary.emptyButton')
+              }
+              onPress={handleAddNewEntry}
+            />
           </View>
         }
       />
@@ -304,62 +301,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
   },
-  addDrinkHeaderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    shadowColor: '#6b1724',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  addDrinkIcon: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  addDrinkText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    gap: 8,
-  },
-  searchIcon: {
-    fontSize: 14,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-  },
   categoriesList: {
     gap: 8,
     paddingVertical: 4,
-  },
-  categoryPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  categoryPillUnselected: {},
-  categoryPillSelected: {
-    shadowColor: '#4d0011',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  categoryPillText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   listContent: {
     padding: Spacing.four,
@@ -478,21 +422,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 280,
-  },
-  emptyButton: {
-    marginTop: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 24,
-    shadowColor: '#6b1724',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  emptyButtonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.5,
   },
 });

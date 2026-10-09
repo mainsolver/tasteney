@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +15,9 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
+import { Button } from '@/components/button';
+import { CategoryPill } from '@/components/category-pill';
+import { Badge } from '@/components/badge';
 import { RatingSelector } from '@/components/rating-selector';
 import { ImageSelector } from '@/components/image-selector';
 import { SensorySelector } from '@/components/sensory-selector';
@@ -39,7 +41,7 @@ const ARCHETYPES: { label: BeverageArchetype; icon: string }[] = [
 
 export default function NewEntryScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{ id?: string; archetype?: string }>();
   const editId = params.id;
   const isEditing = Boolean(editId);
   const { t } = useTranslation();
@@ -57,8 +59,25 @@ export default function NewEntryScreen() {
   const [rating, setRating] = useState<number>(8);
   const [notes, setNotes] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [archetype, setArchetype] = useState<BeverageArchetype>('Wine');
+  const [prevArchetypeParam, setPrevArchetypeParam] = useState(params.archetype);
+  const [archetype, setArchetype] = useState<BeverageArchetype>(() => {
+    if (!editId && params.archetype && ARCHETYPES.some((a) => a.label === params.archetype)) {
+      return params.archetype as BeverageArchetype;
+    }
+    return 'Wine';
+  });
   const [subtype, setSubtype] = useState<string | undefined>(undefined);
+
+  if (params.archetype !== prevArchetypeParam) {
+    setPrevArchetypeParam(params.archetype);
+    if (!editId && params.archetype) {
+      const matched = ARCHETYPES.find((a) => a.label === params.archetype);
+      if (matched) {
+        setArchetype(matched.label);
+        setSubtype(undefined);
+      }
+    }
+  }
   const [selectedDescriptors, setSelectedDescriptors] = useState<SensoryDescriptor[]>([]);
   const [originalCreatedAt, setOriginalCreatedAt] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -289,34 +308,19 @@ export default function NewEntryScreen() {
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
               {t('newEntry.sectionCategory')}
             </Text>
-            <Text style={[styles.sectionHint, { color: colors.secondary }]}>
-              {t('newEntry.selectCategoryHint')}
-            </Text>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.archetypeScroll}>
             {ARCHETYPES.map((item) => {
               const isSelected = archetype === item.label;
               return (
-                <TouchableOpacity
+                <CategoryPill
                   key={item.label}
-                  activeOpacity={0.7}
+                  label={translateArchetype(item.label)}
+                  icon={item.icon}
+                  isSelected={isSelected}
                   onPress={() => handleArchetypeChange(item.label)}
-                  style={[
-                    styles.archetypePill,
-                    isSelected
-                      ? [styles.archetypePillSelected, { backgroundColor: colors.primaryContainer }]
-                      : [styles.archetypePillUnselected, { backgroundColor: colors.surfaceContainerLow }],
-                  ]}>
-                  <Text style={styles.archetypeIcon}>{item.icon}</Text>
-                  <Text
-                    style={[
-                      styles.archetypeText,
-                      isSelected ? { color: colors.onPrimary, fontWeight: '700' } : { color: colors.text },
-                    ]}>
-                    {translateArchetype(item.label)}
-                  </Text>
-                </TouchableOpacity>
+                />
               );
             })}
           </ScrollView>
@@ -329,33 +333,18 @@ export default function NewEntryScreen() {
               <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
                 {t('newEntry.sectionSubtypeHeader')}
               </Text>
-              <Text style={[styles.sectionHint, { color: colors.secondary }]}>
-                {t('newEntry.optionalHint')}
-              </Text>
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subtypeScroll}>
               {BEVERAGE_SUBTYPES[archetype].map((item) => {
                 const isSelected = subtype === item;
                 return (
-                  <TouchableOpacity
+                  <CategoryPill
                     key={item}
-                    activeOpacity={0.7}
+                    label={translateSubtype(archetype, item)}
+                    isSelected={isSelected}
                     onPress={() => setSubtype(isSelected ? undefined : item)}
-                    style={[
-                      styles.subtypePill,
-                      isSelected
-                        ? [styles.subtypePillSelected, { backgroundColor: colors.primaryContainer }]
-                        : [styles.subtypePillUnselected, { backgroundColor: colors.surfaceContainerLow }],
-                    ]}>
-                    <Text
-                      style={[
-                        styles.subtypeText,
-                        isSelected ? { color: colors.onPrimary, fontWeight: '700' } : { color: colors.text },
-                      ]}>
-                      {translateSubtype(archetype, item)}
-                    </Text>
-                  </TouchableOpacity>
+                  />
                 );
               })}
             </ScrollView>
@@ -368,6 +357,7 @@ export default function NewEntryScreen() {
             images={images}
             onChangeImages={setImages}
             onImagesAdded={handleImagesAdded}
+            archetype={archetype}
           />
         </View>
 
@@ -380,9 +370,6 @@ export default function NewEntryScreen() {
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
               {t('newEntry.sectionDetails')}
-            </Text>
-            <Text style={[styles.requiredBadge, { color: colors.secondary }]}>
-              {t('newEntry.required')}
             </Text>
           </View>
 
@@ -433,16 +420,8 @@ export default function NewEntryScreen() {
                 {t('newEntry.extractingGps')}
               </Text>
             ) : autoDetectedLocation ? (
-              <View style={[styles.autoDetectedBadge, { backgroundColor: colors.secondaryFixed }]}>
-                <Text style={[styles.autoDetectedBadgeText, { color: colors.onSecondaryFixed }]}>
-                  {t('newEntry.autoDetected')}
-                </Text>
-              </View>
-            ) : (
-              <Text style={[styles.sectionHint, { color: colors.secondary }]}>
-                {t('newEntry.optionalHint')}
-              </Text>
-            )}
+              <Badge variant="secondary" label={t('newEntry.autoDetected')} />
+            ) : null}
           </View>
 
           <View style={[styles.inputCard, { backgroundColor: colors.surfaceContainerLow }]}>
@@ -497,9 +476,6 @@ export default function NewEntryScreen() {
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
               {t('newEntry.sectionSensory')}
             </Text>
-            <Text style={[styles.sectionHint, { color: colors.secondary }]}>
-              {t('newEntry.sensoryHint')}
-            </Text>
           </View>
 
           <SensorySelector
@@ -521,9 +497,6 @@ export default function NewEntryScreen() {
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
               {t('newEntry.sectionNotes')}
-            </Text>
-            <Text style={[styles.sectionHint, { color: colors.secondary }]}>
-              {t('newEntry.notesHint')}
             </Text>
           </View>
 
@@ -547,28 +520,23 @@ export default function NewEntryScreen() {
 
         {/* Save Button */}
         <View style={styles.saveButtonWrapper}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={handleSave}
-            disabled={isSaving}
-            style={[
-              styles.saveButton,
-              { backgroundColor: colors.primaryContainer },
-              isSaving && { opacity: 0.6 },
-            ]}>
-            <Text style={[styles.saveButtonIcon, { color: colors.secondaryFixed }]}>
-              {isEditing ? '✓' : '🔖'}
-            </Text>
-            <Text style={[styles.saveButtonText, { color: colors.onPrimary }]}>
-              {isSaving
+          <Button
+            variant="container"
+            size="lg"
+            icon={isEditing ? '✓' : '🔖'}
+            title={
+              isSaving
                 ? isEditing
                   ? t('newEntry.updating')
                   : t('newEntry.saving')
                 : isEditing
                 ? t('newEntry.saveEdit')
-                : t('newEntry.saveNew')}
-            </Text>
-          </TouchableOpacity>
+                : t('newEntry.saveNew')
+            }
+            onPress={handleSave}
+            loading={isSaving}
+            fullWidth
+          />
           <Text style={[styles.saveFooterHint, { color: colors.textSecondary }]}>
             {isOffline ? t('newEntry.offlinePrefix') : t('newEntry.noAccountPrefix')}
             {t('newEntry.footerHint')}

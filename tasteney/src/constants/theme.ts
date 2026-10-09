@@ -27,6 +27,9 @@ export const Colors = {
     surfaceContainerHighest: '#e5e2dd',
     outline: '#887272',
     outlineVariant: '#dbc0c0',
+    danger: '#ba1a1a',
+    dangerContainer: '#ffdad6',
+    onDanger: '#ffffff',
   },
   dark: {
     text: '#f3f0eb',
@@ -47,6 +50,9 @@ export const Colors = {
     surfaceContainerHighest: '#423f3a',
     outline: '#9f8888',
     outlineVariant: '#554243',
+    danger: '#ffb4ab',
+    dangerContainer: '#93000a',
+    onDanger: '#690005',
   },
 } as const;
 

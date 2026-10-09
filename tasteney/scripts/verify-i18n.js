@@ -59,6 +59,16 @@ assert.strictEqual(de.subtypes.Coffee['Filter'], 'Filterkaffee');
 assert.strictEqual(de.subtypes.Tea['Green'], 'Grüner Tee');
 console.log('✓ Subtype translations verified.');
 
+// Verify Diary Empty State Translations
+console.log('\n--- Verifying Diary Empty State Translations ---');
+assert.strictEqual(de.diary.emptyTitle, 'Noch keine Verkostungseinträge');
+assert.strictEqual(de.diary.emptyButton, '+ Erstes Getränk eintragen');
+assert.strictEqual(de.diary.emptyButtonCategory, '+ Erstes {{icon}} Getränk eintragen');
+assert.strictEqual(en.diary.emptyTitle, 'No Tasting Entries Yet');
+assert.strictEqual(en.diary.emptyButton, '+ Log Your First Drink');
+assert.strictEqual(en.diary.emptyButtonCategory, '+ Log Your First {{icon}} Drink');
+console.log('✓ Diary empty state translations verified.');
+
 // Verify Rating Scores in German
 console.log('\n--- Verifying Rating Score Translations ---');
 assert.strictEqual(de.rating.scores[1], '1.0 — Fehlerhaft / Ungenießbar');

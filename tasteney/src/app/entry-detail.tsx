@@ -14,6 +14,7 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, MaxContentWidth } from '@/constants/theme';
+import { Button } from '@/components/button';
 import { getDrinkEntryById, deleteDrinkEntry } from '@/services/storage';
 import { DrinkEntry } from '@/types/drink';
 import { SCORE_DESCRIPTIONS } from '@/components/rating-selector';
@@ -25,6 +26,7 @@ import {
   formatDate,
   isGerman,
 } from '@/i18n';
+import { getArchetypeFallbackImage } from '@/constants/drink-images';
 
 const ARCHETYPE_ICONS: Record<string, string> = {
   Wine: '🍷',
@@ -43,8 +45,6 @@ const CATEGORY_META: Record<string, { title: string; subtitle: string; icon: str
   Aftertaste: { title: 'Finish & Length', subtitle: 'Lingering Impression', icon: '✨' },
   Finish: { title: 'Finish & Length', subtitle: 'Lingering Impression', icon: '✨' },
 };
-
-const DEFAULT_ENTRY_IMAGE = require('@/assets/images/drinks/wine.jpg');
 
 export default function EntryDetailScreen() {
   const router = useRouter();
@@ -141,16 +141,19 @@ export default function EntryDetailScreen() {
         <Text style={[styles.notFoundSubtitle, { color: colors.textSecondary }]}>
           {t('entryDetail.notFoundSubtitle')}
         </Text>
-        <TouchableOpacity
+        <Button
+          variant="container"
+          size="md"
+          title={t('entryDetail.returnToDiary')}
           onPress={handleBack}
-          style={[styles.notFoundButton, { backgroundColor: colors.primaryContainer }]}>
-          <Text style={[styles.notFoundButtonText, { color: colors.onPrimary }]}>{t('entryDetail.returnToDiary')}</Text>
-        </TouchableOpacity>
+          style={{ marginTop: Spacing.two }}
+        />
       </View>
     );
   }
 
-  const images = entry.images && entry.images.length > 0 ? entry.images : [DEFAULT_ENTRY_IMAGE];
+  const fallbackImage = getArchetypeFallbackImage(entry.archetype);
+  const images = entry.images && entry.images.length > 0 ? entry.images : [fallbackImage];
   const dateFormatted = formatDate(entry.createdAt, {
     weekday: 'long',
     month: 'long',
@@ -188,7 +191,7 @@ export default function EntryDetailScreen() {
           {/* Hero Image Section */}
           <View style={[styles.heroImageContainer, { backgroundColor: colors.surfaceContainerLow }]}>
             <Image
-              source={images[activeImageIndex] || DEFAULT_ENTRY_IMAGE}
+              source={images[activeImageIndex] || fallbackImage}
               style={styles.heroImage}
               contentFit="cover"
             />
@@ -458,23 +461,23 @@ export default function EntryDetailScreen() {
 
           {/* Bottom Action Buttons */}
           <View style={styles.bottomActionsRow}>
-            <TouchableOpacity
-              activeOpacity={0.85}
+            <Button
+              variant="container"
+              size="md"
+              icon="✎"
+              title={german ? 'Bearbeiten' : 'Edit'}
               onPress={handleEdit}
-              style={[styles.primaryActionButton, { backgroundColor: colors.primaryContainer }]}>
-              <Text style={[styles.primaryActionText, { color: colors.onPrimary }]}>
-                {german ? '✎ Bearbeiten' : '✎ Edit'}
-              </Text>
-            </TouchableOpacity>
+              style={{ flex: 1 }}
+            />
 
-            <TouchableOpacity
-              activeOpacity={0.85}
+            <Button
+              variant="danger"
+              size="md"
+              icon="🗑️"
+              title={german ? 'Löschen' : 'Delete'}
               onPress={handleDelete}
-              style={[styles.deleteActionButton, { borderColor: colors.outlineVariant }]}>
-              <Text style={[styles.deleteActionText, { color: '#ba1a1a' }]}>
-                {german ? '🗑️ Löschen' : '🗑️ Delete'}
-              </Text>
-            </TouchableOpacity>
+              style={{ flex: 1 }}
+            />
           </View>
         </View>
       </ScrollView>
@@ -490,7 +493,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.four,
+    padding: Spacing.two,
   },
   loadingText: {
     fontSize: 16,

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   useColorScheme,
   Platform,
 } from 'react-native';
@@ -17,6 +16,10 @@ import { useTranslation } from 'react-i18next';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Button } from '@/components/button';
+import { SearchBar } from '@/components/search-bar';
+import { CategoryPill } from '@/components/category-pill';
+import { Badge } from '@/components/badge';
 import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getDrinkKnowledgeBase, DrinkCategoryKnowledge } from '@/data/drink-knowledge';
@@ -67,23 +70,6 @@ export default function ExploreKnowledgeScreen() {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
   };
-
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top + Spacing.two,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    ios: {
-      paddingTop: insets.top + Spacing.two,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.five,
-      paddingBottom: Spacing.six,
-    },
-  });
 
   const categories = useMemo(() => {
     return ['All', ...knowledgeBase.map((item) => item.archetype)];
@@ -198,12 +184,12 @@ export default function ExploreKnowledgeScreen() {
             />
             <View style={styles.bannerHeaderContent}>
               <View style={styles.badgeRow}>
-                <View style={[styles.archetypeBadge, { backgroundColor: colors.secondaryFixed }]}>
-                  <Text style={styles.badgeEmoji}>{item.icon}</Text>
-                  <Text style={[styles.badgeText, { color: colors.onSecondaryFixed }]}>
-                    {displayArchetype}
-                  </Text>
-                </View>
+                <Badge
+                  variant="secondary"
+                  icon={item.icon}
+                  label={displayArchetype}
+                  style={styles.archetypeBadge}
+                />
                 <View
                   style={[
                     styles.toggleIndicator,
@@ -651,14 +637,12 @@ export default function ExploreKnowledgeScreen() {
                   backgroundColor: colors.surfaceContainerLow,
                 },
               ]}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => router.push('/new-entry')}
-                style={[styles.quickLogButton, { backgroundColor: colors.primary }]}>
-                <Text style={[styles.quickLogButtonText, { color: colors.onPrimary }]}>
-                  {german ? `+ ${displayArchetype} ins Tagebuch eintragen` : `+ Log a ${item.archetype} to Diary`}
-                </Text>
-              </TouchableOpacity>
+              <Button
+                variant="primary"
+                title={german ? `+ ${displayArchetype} ins Tagebuch eintragen` : `+ Log a ${item.archetype} to Diary`}
+                onPress={() => router.push({ pathname: '/new-entry', params: { archetype: item.archetype } })}
+                fullWidth
+              />
             </View>
           </View>
         )}
@@ -667,147 +651,111 @@ export default function ExploreKnowledgeScreen() {
   };
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets={true}
-      keyboardDismissMode="on-drag"
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
-      showsVerticalScrollIndicator={false}>
-      <ThemedView style={styles.container}>
-        {/* Header Title Section */}
-        <ThemedView style={styles.header}>
-          <View style={styles.headerTitleRow}>
-            <View style={[styles.titleIconBadge, { backgroundColor: colors.secondaryFixed }]}>
-              <Text style={styles.titleIconText}>📖</Text>
+    <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: safeAreaInsets.top }]}>
+      <ScrollView
+        ref={scrollViewRef}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={true}
+        keyboardDismissMode="on-drag"
+        style={[styles.scrollView, { backgroundColor: theme.background }]}
+        contentContainerStyle={[
+          styles.contentContainer,
+          {
+            paddingBottom: insets.bottom,
+            paddingLeft: safeAreaInsets.left,
+            paddingRight: safeAreaInsets.right,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}>
+        <ThemedView style={styles.container}>
+          {/* Header Title Section */}
+          <ThemedView style={styles.header}>
+            <View style={styles.headerTitleRow}>
+              <View style={[styles.titleIconBadge, { backgroundColor: colors.secondaryFixed }]}>
+                <Text style={styles.titleIconText}>📖</Text>
+              </View>
+              <View style={styles.titleTextCol}>
+                <ThemedText type="subtitle" style={styles.screenMainTitle}>
+                  {german ? 'Getränke-Enzyklopädie' : 'Drink Encyclopedia'}
+                </ThemedText>
+                <ThemedText style={styles.screenSubtitle} themeColor="textSecondary">
+                  {german ? 'Geschichte, Herkunft, Brautraditionen & Verkostungs-Guides' : 'History, origins, brewing traditions & tasting guides'}
+                </ThemedText>
+              </View>
             </View>
-            <View style={styles.titleTextCol}>
-              <ThemedText type="subtitle" style={styles.screenMainTitle}>
-                {german ? 'Getränke-Enzyklopädie' : 'Drink Encyclopedia'}
-              </ThemedText>
-              <ThemedText style={styles.screenSubtitle} themeColor="textSecondary">
-                {german ? 'Geschichte, Herkunft, Brautraditionen & Verkostungs-Guides' : 'History, origins, brewing traditions & tasting guides'}
-              </ThemedText>
-            </View>
-          </View>
 
-          {/* Search Bar */}
-          <View
-            style={[
-              styles.searchBar,
-              {
-                backgroundColor: colors.surfaceContainer,
-                borderColor: colors.outlineVariant,
-              },
-            ]}>
-            <SymbolView
-              name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
-              size={18}
-              tintColor={colors.textSecondary}
-            />
-            <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder={t('explore.searchPlaceholder')}
-              placeholderTextColor={colors.textSecondary}
+            {/* Search Bar */}
+            <SearchBar
               value={searchQuery}
-              onFocus={() => scrollViewRef.current?.scrollTo({ y: 0, animated: true })}
               onChangeText={(text) => {
                 setSearchQuery(text);
                 scrollViewRef.current?.scrollTo({ y: 0, animated: true });
               }}
-              clearButtonMode="while-editing"
+              onFocus={() => scrollViewRef.current?.scrollTo({ y: 0, animated: true })}
+              placeholder={t('explore.searchPlaceholder')}
             />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={10}>
-                <SymbolView
-                  name={{ ios: 'xmark.circle.fill', android: 'close', web: 'close' }}
-                  size={16}
-                  tintColor={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
 
-          {/* Filter Pills */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterPillsScroll}>
-            {categories.map((cat) => {
-              const isSelected = selectedCategory === cat;
-              return (
-                <TouchableOpacity
-                  key={cat}
-                  activeOpacity={0.7}
-                  onPress={() => setSelectedCategory(cat)}
-                  style={[
-                    styles.filterPill,
-                    {
-                      backgroundColor: isSelected
-                        ? colors.primaryContainer
-                        : colors.surfaceContainer,
-                      borderColor: isSelected
-                        ? colors.primary
-                        : colors.outlineVariant,
-                    },
-                  ]}>
-                  <Text
-                    style={[
-                      styles.filterPillText,
-                      {
-                        color: isSelected ? colors.onPrimary : colors.textSecondary,
-                        fontWeight: isSelected ? '700' : '500',
-                      },
-                    ]}>
-                    {cat === 'All' ? t('common.allShort') : translateArchetype(cat)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </ThemedView>
+            {/* Filter Pills */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterPillsScroll}>
+              {categories.map((cat) => {
+                const isSelected = selectedCategory === cat;
+                return (
+                  <CategoryPill
+                    key={cat}
+                    label={cat === 'All' ? t('common.allShort') : translateArchetype(cat)}
+                    isSelected={isSelected}
+                    onPress={() => setSelectedCategory(cat)}
+                  />
+                );
+              })}
+            </ScrollView>
+          </ThemedView>
 
-        {/* Knowledge Articles List */}
-        <ThemedView style={styles.articlesList}>
-          {filteredKnowledge.length === 0 ? (
-            <View
-              style={[
-                styles.emptyStateCard,
-                { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
-              ]}>
-              <Text style={styles.emptyStateEmoji}>🔍</Text>
-              <Text style={[styles.emptyStateTitle, { color: colors.text }]}>
-                {german ? 'Keine passenden Artikel gefunden' : 'No knowledge articles match'}
-              </Text>
-              <Text style={[styles.emptyStateSubtitle, { color: colors.textSecondary }]}>
-                {german
-                  ? `Passe deine Suchanfrage '${searchQuery}' an oder setze die Filter zurück.`
-                  : `Try adjusting your search query '${searchQuery}' or resetting category filters.`}
-              </Text>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('All');
-                }}
-                style={[styles.resetFilterButton, { backgroundColor: colors.surfaceContainerHighest }]}>
-                <Text style={[styles.resetFilterButtonText, { color: colors.primary }]}>
-                  {german ? 'Alle Filter zurücksetzen' : 'Reset All Filters'}
+          {/* Knowledge Articles List */}
+          <ThemedView style={styles.articlesList}>
+            {filteredKnowledge.length === 0 ? (
+              <View
+                style={[
+                  styles.emptyStateCard,
+                  { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
+                ]}>
+                <Text style={styles.emptyStateEmoji}>🔍</Text>
+                <Text style={[styles.emptyStateTitle, { color: colors.text }]}>
+                  {german ? 'Keine passenden Artikel gefunden' : 'No knowledge articles match'}
                 </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            filteredKnowledge.map(renderCategoryCard)
-          )}
+                <Text style={[styles.emptyStateSubtitle, { color: colors.textSecondary }]}>
+                  {german
+                    ? `Passe deine Suchanfrage '${searchQuery}' an oder setze die Filter zurück.`
+                    : `Try adjusting your search query '${searchQuery}' or resetting category filters.`}
+                </Text>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  title={german ? 'Alle Filter zurücksetzen' : 'Reset All Filters'}
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('All');
+                  }}
+                  style={{ marginTop: Spacing.two }}
+                />
+              </View>
+            ) : (
+              filteredKnowledge.map(renderCategoryCard)
+            )}
+          </ThemedView>
         </ThemedView>
-      </ThemedView>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
@@ -858,32 +806,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Platform.OS === 'ios' ? Spacing.two : Spacing.one,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: Spacing.two,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    paddingVertical: 4,
-  },
   filterPillsScroll: {
     gap: Spacing.two,
     paddingVertical: Spacing.one,
-  },
-  filterPill: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  filterPillText: {
-    fontSize: 13,
   },
   articlesList: {
     gap: Spacing.four,

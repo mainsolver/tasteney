@@ -34,6 +34,7 @@ const en = {
     emptyFilterSubtitle: 'No drink matches your filter criteria.',
     emptyInitialSubtitle: 'Start logging your beverage experiences, ratings, images, and tasting impressions.',
     emptyButton: '+ Log Your First Drink',
+    emptyButtonCategory: '+ Log Your First {{icon}} Drink',
   },
   explore: {
     headerSub: 'BEVERAGE GUIDE',

@@ -15,16 +15,17 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
 import { isGerman } from '@/i18n';
+import { BeverageArchetype } from '@/types/drink';
+import { ARCHETYPE_FALLBACK_IMAGES, DEFAULT_ENTRY_IMAGE as DEFAULT_FALLBACK_IMAGE } from '@/constants/drink-images';
 
 interface ImageSelectorProps {
   images: string[];
   onChangeImages: (images: string[]) => void;
   onImagesAdded?: (assets: ImagePicker.ImagePickerAsset[]) => void;
+  archetype?: BeverageArchetype;
 }
 
-const DEFAULT_FALLBACK_IMAGE = require('@/assets/images/drinks/wine.jpg');
-
-export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSelectorProps) {
+export function ImageSelector({ images, onChangeImages, onImagesAdded, archetype }: ImageSelectorProps) {
   const scheme = useColorScheme();
   const { t } = useTranslation();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
@@ -123,7 +124,8 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
     }
   };
 
-  const activeDisplayUri = images.length > 0 ? images[activeImageIndex] : DEFAULT_FALLBACK_IMAGE;
+  const fallbackImage = (archetype && ARCHETYPE_FALLBACK_IMAGES[archetype]) || DEFAULT_FALLBACK_IMAGE;
+  const activeDisplayUri = images.length > 0 ? images[activeImageIndex] : fallbackImage;
   const isCustomImage = images.length > 0;
 
   return (
@@ -132,11 +134,13 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           {german ? 'FOTOAUFNAHMEN' : 'VISUAL RECORD'}
         </Text>
-        <Text style={[styles.subHint, { color: colors.secondary }]}>
-          {images.length > 0
-            ? (german ? `${images.length} Foto${images.length > 1 ? 's' : ''} angehängt` : `${images.length} photo${images.length > 1 ? 's' : ''} attached`)
-            : t('image.addPhotos')}
-        </Text>
+        {images.length > 0 && (
+          <Text style={[styles.subHint, { color: colors.secondary }]}>
+            {german
+              ? `${images.length} Foto${images.length > 1 ? 's' : ''} angehängt`
+              : `${images.length} photo${images.length > 1 ? 's' : ''} attached`}
+          </Text>
+        )}
       </View>
 
       {/* Main Image Banner Card */}
@@ -149,38 +153,45 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded }: ImageSe
         />
         <View style={styles.gradientOverlay} />
 
-        {/* Floating Controls inside the image */}
-        <View style={styles.floatingControls}>
-          <View style={styles.tagBadge}>
-            <Text style={styles.tagBadgeText}>
-              {isCustomImage
-                ? (german ? `FOTO ${activeImageIndex + 1} VON ${images.length}` : `PHOTO ${activeImageIndex + 1} OF ${images.length}`)
-                : (german ? 'BEISPIELVORSCHAU' : 'SAMPLE PREVIEW')}
-            </Text>
-          </View>
-
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={showPhotoOptions}
-              style={[styles.glassButton, { backgroundColor: 'rgba(255, 255, 255, 0.92)' }]}>
-              <Text style={[styles.glassButtonText, { color: colors.primary }]}>
-                {isCustomImage
-                  ? (german ? '+ Foto hinzufügen' : '+ Add Photo')
-                  : (german ? 'Foto anhängen' : 'Attach Photo')}
-              </Text>
-            </TouchableOpacity>
-
-            {isCustomImage && (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => handleRemoveImage(activeImageIndex)}
-                style={[styles.glassIconButton, { backgroundColor: 'rgba(255, 255, 255, 0.92)' }]}>
-                <Text style={[styles.glassIconText, { color: colors.textSecondary }]}>✕</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+        {/* Tag Badge inside the image */}
+        <View style={styles.tagBadge}>
+          <Text style={styles.tagBadgeText}>
+            {isCustomImage
+              ? (german ? `FOTO ${activeImageIndex + 1} VON ${images.length}` : `PHOTO ${activeImageIndex + 1} OF ${images.length}`)
+              : (german ? 'BEISPIELVORSCHAU' : 'SAMPLE PREVIEW')}
+          </Text>
         </View>
+
+        {/* Delete button inside the image */}
+        {isCustomImage && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => handleRemoveImage(activeImageIndex)}
+            style={styles.imageDeleteButton}>
+            <Text style={styles.imageDeleteButtonText}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Action button below the example image */}
+      <View style={styles.actionsRow}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={showPhotoOptions}
+          style={[
+            styles.actionButton,
+            {
+              backgroundColor: colors.surfaceContainerHighest,
+              borderColor: colors.outlineVariant,
+            },
+          ]}>
+          <Text style={styles.actionButtonIcon}>📷</Text>
+          <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+            {isCustomImage
+              ? (german ? '+ Foto hinzufügen' : '+ Add Photo')
+              : (german ? 'Foto anhängen' : 'Attach Photo')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Thumbnails strip for multiple images */}
@@ -249,16 +260,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(77, 0, 17, 0.25)',
   },
-  floatingControls: {
+  tagBadge: {
     position: 'absolute',
     bottom: 12,
     left: 12,
-    right: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  tagBadge: {
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -270,35 +275,54 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
   },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: 8,
+  imageDeleteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     alignItems: 'center',
-  },
-  glassButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
+    justifyContent: 'center',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
-  glassButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
+  imageDeleteButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
   },
-  glassIconButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
+  actionsRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  glassIconText: {
-    fontSize: 12,
-    fontWeight: '800',
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.four,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#4d0011',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  actionButtonIcon: {
+    fontSize: 15,
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   thumbnailsContainer: {
     flexDirection: 'row',
