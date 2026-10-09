@@ -10,8 +10,10 @@
     "ios": {
       "icon": "./assets/logo.png",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Tasteney uses your location to automatically tag the city and country where you enjoyed your drink."
-      }
+        "NSLocationWhenInUseUsageDescription": "Tasteney uses your location to automatically tag the city and country where you enjoyed your drink.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.tasteney.app"
     },
     "android": {
       "adaptiveIcon": {

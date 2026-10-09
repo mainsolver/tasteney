@@ -21,6 +21,7 @@ const de = {
     logDrink: 'Getränk eintragen',
     logDetails: 'Eintragsdetails',
     back: 'Zurück',
+    cancel: 'Abbrechen',
   },
   diary: {
     journalSubtitle: 'VERKOSTUNGSTAGEBUCH',

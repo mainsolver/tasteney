@@ -21,6 +21,7 @@ const en = {
     logDrink: 'Log Drink',
     logDetails: 'Log details',
     back: 'Back',
+    cancel: 'Cancel',
   },
   diary: {
     journalSubtitle: 'TASTING DIARY',

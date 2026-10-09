@@ -7,7 +7,6 @@ import {
   FlatList,
   useColorScheme,
   Platform,
-  Alert,
   TextInput,
   RefreshControl,
 } from 'react-native';
@@ -16,14 +15,11 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
-import { getDrinkEntries, deleteDrinkEntry } from '@/services/storage';
+import { getDrinkEntries } from '@/services/storage';
 import { DrinkEntry } from '@/types/drink';
-import { SCORE_DESCRIPTIONS } from '@/components/rating-selector';
 import {
   translateArchetype,
   translateSubtype,
-  translateScoreDescription,
-  translateSensoryTag,
   formatDate,
 } from '@/i18n';
 
@@ -76,24 +72,6 @@ export default function DiaryHomeScreen() {
     setRefreshing(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    Alert.alert(
-      t('diary.deleteTitle'),
-      t('diary.deleteMessage', { name }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            await deleteDrinkEntry(id);
-            await loadEntries();
-          },
-        },
-      ]
-    );
-  };
-
   const filteredEntries = entries.filter((item) => {
     const matchesCategory = selectedCategory === 'All' || item.archetype === selectedCategory;
     const query = searchQuery.trim().toLowerCase();
@@ -121,127 +99,63 @@ export default function DiaryHomeScreen() {
       day: 'numeric',
       year: 'numeric',
     });
-    const descriptor = translateScoreDescription(item.rating) || SCORE_DESCRIPTIONS[item.rating] || `${item.rating}.0`;
     const locationText = [item.city, item.country].filter(Boolean).join(', ');
     const displayArchetype = translateArchetype(item.archetype);
     const displaySubtype = item.subtype ? translateSubtype(item.archetype, item.subtype) : '';
 
     return (
       <TouchableOpacity
-        activeOpacity={0.9}
+        activeOpacity={0.88}
         onPress={() => router.push({ pathname: '/entry-detail', params: { id: item.id } })}
         style={[styles.card, { backgroundColor: colors.surfaceContainerLow }]}>
-        {/* Card Image Banner */}
-        <View style={styles.cardImageContainer}>
-          <Image source={displayImage} style={styles.cardImage} contentFit="cover" />
-          <View style={styles.imageOverlay} />
+        <View style={styles.cardContent}>
+          {/* Left Side: First Image with Rating Inside */}
+          <View style={styles.cardImageContainer}>
+            <Image source={displayImage} style={styles.cardImage} contentFit="cover" />
+            <View style={[styles.ratingBadge, { backgroundColor: colors.primaryContainer }]}>
+              <Text style={[styles.ratingScore, { color: colors.onPrimary }]}>{item.rating}</Text>
+              <Text style={[styles.ratingMax, { color: colors.onPrimary }]}>/10</Text>
+            </View>
+          </View>
 
-          {/* Archetype & Image count badge */}
-          <View style={styles.cardHeaderBadges}>
-            <View style={styles.archetypeBadge}>
-              <Text style={styles.archetypeBadgeText}>
+          {/* Right Side: Name, Place, Date, Type, Producer */}
+          <View style={styles.cardInfo}>
+            <Text style={[styles.cardTitle, { color: colors.primary }]} numberOfLines={1}>
+              {item.name}
+            </Text>
+
+            {/* Type */}
+            <View style={styles.cardMetaRow}>
+              <Text style={[styles.cardType, { color: colors.primary }]} numberOfLines={1}>
                 {ARCHETYPE_ICONS[item.archetype] || '✨'} {displayArchetype}
                 {displaySubtype ? ` • ${displaySubtype}` : ''}
               </Text>
             </View>
 
-            {item.images && item.images.length > 1 && (
-              <View style={styles.photoCountBadge}>
-                <Text style={styles.photoCountText}>📷 {item.images.length}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Rating Badge */}
-          <View style={[styles.ratingBadge, { backgroundColor: colors.primaryContainer }]}>
-            <Text style={[styles.ratingScore, { color: colors.onPrimary }]}>{item.rating}</Text>
-            <Text style={[styles.ratingMax, { color: colors.onPrimary }]}>/10</Text>
-          </View>
-        </View>
-
-        {/* Card Body */}
-        <View style={styles.cardBody}>
-          <View style={styles.cardTitleRow}>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={[styles.cardTitle, { color: colors.primary }]}>{item.name}</Text>
-              {displaySubtype ? (
-                <View style={styles.subtypeBadgeRow}>
-                  <View style={[styles.subtypePill, { backgroundColor: colors.surfaceContainerHighest }]}>
-                    <Text style={[styles.subtypePillText, { color: colors.primary }]}>
-                      {displaySubtype}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-              {item.manufacturer ? (
-                <Text style={[styles.cardManufacturer, { color: colors.secondary }]}>
-                  🏷️ {item.manufacturer}
-                </Text>
-              ) : null}
-              {locationText ? (
-                <Text style={[styles.cardLocation, { color: colors.secondary }]}>
-                  📍 {locationText}
-                </Text>
-              ) : null}
-            </View>
-
-            <View style={styles.cardActions}>
-              <TouchableOpacity
-                onPress={() => router.push({ pathname: '/new-entry', params: { id: item.id } })}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={[styles.cardActionButton, { backgroundColor: colors.surfaceContainerHighest }]}>
-                <Text style={[styles.editButtonText, { color: colors.primary }]}>✎</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => handleDelete(item.id, item.name)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={[styles.cardActionButton, { backgroundColor: colors.surfaceContainerHighest }]}>
-                <Text style={[styles.deleteButtonText, { color: colors.outline }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Score Descriptor */}
-          <View style={styles.descriptorRow}>
-            <Text style={[styles.descriptorText, { color: colors.textSecondary }]}>
-              {descriptor}
-            </Text>
-            <Text style={[styles.cardDate, { color: colors.textSecondary }]}>{dateFormatted}</Text>
-          </View>
-
-          {/* Sensory Descriptors */}
-          {item.sensoryDescriptors && item.sensoryDescriptors.length > 0 && (
-            <View style={styles.descriptorsWrapper}>
-              {item.sensoryDescriptors.map((desc) => {
-                const categoryIcon =
-                  desc.category === 'Smell'
-                    ? '👃'
-                    : desc.category === 'Taste'
-                    ? '👅'
-                    : '✨';
-                return (
-                  <View
-                    key={desc.id}
-                    style={[styles.descriptorChip, { backgroundColor: colors.surfaceContainerHighest }]}>
-                    <Text style={[styles.descriptorChipText, { color: colors.primary }]}>
-                      {categoryIcon} {translateSensoryTag(desc.name)}
-                      {desc.intensity ? ` • ${desc.intensity}/5` : ''}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-
-          {/* Personal Memo */}
-          {item.notes ? (
-            <View style={[styles.notesContainer, { backgroundColor: colors.surfaceContainerLowest }]}>
-              <Text style={[styles.notesText, { color: colors.text }]} numberOfLines={3}>
-                &ldquo;{item.notes}&rdquo;
+            {/* Producer */}
+            {item.manufacturer ? (
+              <Text style={[styles.cardProducer, { color: colors.secondary }]} numberOfLines={1}>
+                🏷️ {item.manufacturer}
               </Text>
-            </View>
-          ) : null}
+            ) : null}
+
+            {/* Place */}
+            {locationText ? (
+              <Text style={[styles.cardLocation, { color: colors.secondary }]} numberOfLines={1}>
+                📍 {locationText}
+              </Text>
+            ) : null}
+
+            {/* Date */}
+            <Text style={[styles.cardDate, { color: colors.textSecondary }]} numberOfLines={1}>
+              🗓️ {dateFormatted}
+            </Text>
+          </View>
+
+          {/* Navigation Chevron Indicator */}
+          <View style={styles.cardChevronContainer}>
+            <Text style={[styles.cardChevron, { color: colors.outline }]}>›</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -449,185 +363,100 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: Spacing.four,
-    gap: Spacing.four,
+    gap: Spacing.three,
   },
   card: {
-    borderRadius: 22,
+    borderRadius: 18,
     overflow: 'hidden',
     shadowColor: '#4d0011',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    padding: 12,
+    gap: 12,
+    alignItems: 'center',
   },
   cardImageContainer: {
-    height: 180,
-    width: '100%',
+    width: 100,
+    height: 100,
+    borderRadius: 14,
+    overflow: 'hidden',
     position: 'relative',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   cardImage: {
     width: '100%',
     height: '100%',
   },
-  imageOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(77, 0, 17, 0.2)',
-  },
-  cardHeaderBadges: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    gap: 6,
-  },
-  archetypeBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  archetypeBadgeText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  photoCountBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  photoCountText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
   ratingBadge: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
+    bottom: 6,
+    left: 6,
     flexDirection: 'row',
     alignItems: 'baseline',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 10,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
   },
   ratingScore: {
-    fontSize: 17,
+    fontSize: 13,
     fontWeight: '800',
   },
   ratingMax: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '600',
     opacity: 0.85,
   },
-  cardBody: {
-    padding: Spacing.four,
-    gap: Spacing.two,
-  },
-  cardTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  cardInfo: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 3,
   },
   cardTitle: {
-    fontSize: 19,
+    fontSize: 16,
     fontWeight: '700',
-    lineHeight: 24,
+    lineHeight: 20,
   },
-  subtypeBadgeRow: {
+  cardMetaRow: {
     flexDirection: 'row',
-    marginTop: 4,
-    marginBottom: 2,
+    alignItems: 'center',
   },
-  subtypePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  subtypePillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  cardManufacturer: {
-    fontSize: 13,
+  cardType: {
+    fontSize: 12,
     fontWeight: '600',
-    marginTop: 2,
+  },
+  cardProducer: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   cardLocation: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  deleteButton: {
-    padding: 6,
-    borderRadius: 12,
-  },
-  deleteButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  cardActionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  editButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  descriptorRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  descriptorText: {
-    fontSize: 13,
-    fontStyle: 'italic',
+    fontSize: 12,
     fontWeight: '500',
   },
   cardDate: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
-  descriptorsWrapper: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 2,
-  },
-  descriptorChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  descriptorChipText: {
     fontSize: 11,
+    fontWeight: '400',
+    marginTop: 1,
+  },
+  cardChevronContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 4,
+    paddingRight: 6,
+  },
+  cardChevron: {
+    fontSize: 22,
     fontWeight: '600',
-  },
-  notesContainer: {
-    padding: 12,
-    borderRadius: 14,
-    marginTop: 4,
-  },
-  notesText: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontStyle: 'italic',
+    lineHeight: 24,
   },
   emptyContainer: {
     alignItems: 'center',

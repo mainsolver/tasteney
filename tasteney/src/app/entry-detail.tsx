@@ -463,7 +463,7 @@ export default function EntryDetailScreen() {
               onPress={handleEdit}
               style={[styles.primaryActionButton, { backgroundColor: colors.primaryContainer }]}>
               <Text style={[styles.primaryActionText, { color: colors.onPrimary }]}>
-                {german ? '✎ Eintrag bearbeiten' : '✎ Edit Entry'}
+                {german ? '✎ Bearbeiten' : '✎ Edit'}
               </Text>
             </TouchableOpacity>
 
@@ -472,7 +472,7 @@ export default function EntryDetailScreen() {
               onPress={handleDelete}
               style={[styles.deleteActionButton, { borderColor: colors.outlineVariant }]}>
               <Text style={[styles.deleteActionText, { color: '#ba1a1a' }]}>
-                {german ? '🗑️ Eintrag löschen' : '🗑️ Delete Entry'}
+                {german ? '🗑️ Löschen' : '🗑️ Delete'}
               </Text>
             </TouchableOpacity>
           </View>

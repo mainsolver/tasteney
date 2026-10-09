@@ -16,6 +16,10 @@ export default function RootLayout() {
   const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
 
   useEffect(() => {
+    SplashScreen.hideAsync().catch(console.warn);
+  }, []);
+
+  useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.scrollTo(0, 0);
       document.documentElement?.scrollTo?.(0, 0);
@@ -27,7 +31,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="new-entry" options={{ title: t('nav.logDrink'), headerBackTitle: t('nav.back'), headerTintColor: colors.primary }} />
+        <Stack.Screen name="new-entry" options={{ title: t('nav.logDrink'), headerBackTitle: t('nav.cancel'), headerTintColor: colors.primary }} />
         <Stack.Screen name="entry-detail" options={{ title: t('nav.logDetails'), headerBackTitle: t('nav.back'), headerTintColor: colors.primary }} />
       </Stack>
     </ThemeProvider>
