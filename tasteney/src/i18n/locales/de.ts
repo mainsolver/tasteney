@@ -104,6 +104,8 @@ const de = {
     saveNew: 'Verkostungseintrag speichern',
     saving: 'Wird gespeichert...',
     updating: 'Wird aktualisiert...',
+    offlinePrefix: 'Offline - ',
+    noAccountPrefix: 'Kein Account - ',
     footerHint: 'Lokal auf dem Gerät gespeichert',
     toastTitleEdit: 'Eintrag aktualisiert',
     toastTitleNew: 'Getränk eingetragen',

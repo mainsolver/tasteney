@@ -21,6 +21,7 @@ import { ImageSelector } from '@/components/image-selector';
 import { SensorySelector } from '@/components/sensory-selector';
 import { saveDrinkEntry, getDrinkEntryById } from '@/services/storage';
 import { resolveLocationFromAsset, getCurrentDeviceLocation } from '@/services/location';
+import { checkServerConnectivity } from '@/services/network';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { BeverageArchetype, BEVERAGE_SUBTYPES, SensoryDescriptor } from '@/types/drink';
 import { translateArchetype, translateSubtype } from '@/i18n';
@@ -62,6 +63,7 @@ export default function NewEntryScreen() {
   const [originalCreatedAt, setOriginalCreatedAt] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionPositions = useRef<Record<string, number>>({});
@@ -92,12 +94,24 @@ export default function NewEntryScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      let isMounted = true;
+      activeInputTarget.current = null;
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         window.scrollTo(0, 0);
         document.documentElement?.scrollTo?.(0, 0);
         document.body?.scrollTo?.(0, 0);
       }
+
+      checkServerConnectivity().then(({ isOffline: offline }) => {
+        if (isMounted) {
+          setIsOffline(offline);
+        }
+      });
+
+      return () => {
+        isMounted = false;
+      };
     }, [])
   );
 
@@ -184,11 +198,9 @@ export default function NewEntryScreen() {
         if (deviceLocation && (deviceLocation.country || deviceLocation.city)) {
           if (!currentCountry && deviceLocation.country) {
             setCountry(deviceLocation.country);
-            currentCountry = deviceLocation.country;
           }
           if (!currentCity && deviceLocation.city) {
             setCity(deviceLocation.city);
-            currentCity = deviceLocation.city;
           }
           const displayLabel = [deviceLocation.city, deviceLocation.country].filter(Boolean).join(', ');
           setAutoDetectedLocation(displayLabel);
@@ -260,6 +272,7 @@ export default function NewEntryScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 44 : 0}>
       <ScrollView
         ref={scrollViewRef}
+        contentOffset={{ x: 0, y: 0 }}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets={true}
         keyboardDismissMode="on-drag"
@@ -528,7 +541,6 @@ export default function NewEntryScreen() {
                 setNotes(val);
                 scrollToTarget('notes');
               }}
-              onContentSizeChange={() => scrollToTarget('notes')}
             />
           </View>
         </View>
@@ -558,6 +570,7 @@ export default function NewEntryScreen() {
             </Text>
           </TouchableOpacity>
           <Text style={[styles.saveFooterHint, { color: colors.textSecondary }]}>
+            {isOffline ? t('newEntry.offlinePrefix') : t('newEntry.noAccountPrefix')}
             {t('newEntry.footerHint')}
           </Text>
         </View>

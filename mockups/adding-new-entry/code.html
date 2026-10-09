@@ -399,7 +399,7 @@
   // Intensity Dot Rating Micro-interaction
   function setIntensity(dotBtn, level) {
     const parentDots = dotBtn.parentElement;
-    parentDots.setAttribute('data-intensity', level);
+    parentDots.dataset.intensity = level;
     const counterBadge = parentDots.previousElementSibling;
     if (counterBadge) {
       counterBadge.textContent = `${level}/5`;
@@ -446,7 +446,6 @@
   function promptCustomDescriptor(stage) {
     const term = prompt(`Enter ${stage} flavor note (e.g. Earl Grey, Dried Fig, Petrichor):`);
     if (term && term.trim().length > 0) {
-      const mockBtn = { textContent: `+ ${term.trim()}`, style: {}, closest: (sel) => document.querySelector(sel) };
       // locate matching container
       const stages = { 'Smell': 0, 'Taste': 1, 'Finish': 2 };
       const stageIdx = stages[stage] || 0;

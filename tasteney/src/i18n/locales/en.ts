@@ -104,6 +104,8 @@ const en = {
     saveNew: 'Save Tasting Entry',
     saving: 'Saving...',
     updating: 'Updating...',
+    offlinePrefix: 'Offline - ',
+    noAccountPrefix: 'No Account - ',
     footerHint: 'Saved locally to private device ledger',
     toastTitleEdit: 'Drink Updated',
     toastTitleNew: 'Drink Logged',
