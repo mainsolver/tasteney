@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, MaxContentWidth } from '@/constants/theme';
 import { Button } from '@/components/button';
 import { getDrinkEntryById, deleteDrinkEntry } from '@/services/storage';
+import { resolveImageUri } from '@/services/image-storage';
 import { DrinkEntry } from '@/types/drink';
 import { SCORE_DESCRIPTIONS } from '@/components/rating-selector';
 import {
@@ -153,7 +154,10 @@ export default function EntryDetailScreen() {
   }
 
   const fallbackImage = getArchetypeFallbackImage(entry.archetype);
-  const images = entry.images && entry.images.length > 0 ? entry.images : [fallbackImage];
+  const resolvedImages = (entry.images && entry.images.length > 0 ? entry.images : [])
+    .map((img) => resolveImageUri(img) || img)
+    .filter(Boolean);
+  const images = resolvedImages.length > 0 ? resolvedImages : [fallbackImage];
   const dateFormatted = formatDate(entry.createdAt, {
     weekday: 'long',
     month: 'long',

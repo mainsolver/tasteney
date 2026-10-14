@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   useColorScheme,
   Platform,
+  Linking,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
@@ -20,12 +20,27 @@ import { Button } from '@/components/button';
 import { SearchBar } from '@/components/search-bar';
 import { CategoryPill } from '@/components/category-pill';
 import { Badge } from '@/components/badge';
-import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { LinkedArticleContent } from '@/components/linked-article-content';
+import { BottomTabInset, Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { getDrinkKnowledgeBase, DrinkCategoryKnowledge } from '@/data/drink-knowledge';
+import {
+  getCategories,
+  getArticles,
+  getArticleById,
+  getRelatedArticles,
+} from '@/data/drink-knowledge-service';
+import { DrinkArticle, ArticleType } from '@/types/drink-knowledge';
 import { isGerman, translateArchetype } from '@/i18n';
+import { BeverageArchetype } from '@/types/drink';
 
-type ActiveSectionTab = 'origin' | 'production' | 'styles' | 'sensory' | 'serving' | 'facts';
+const TYPE_CONFIG: Record<
+  ArticleType,
+  { icon: string; labelKey: string; badgeVariant: 'primary' | 'secondary' | 'outline' | 'surface' }
+> = {
+  general: { icon: '📖', labelKey: 'explore.types.general', badgeVariant: 'primary' },
+  ingredient: { icon: '🌾', labelKey: 'explore.types.ingredient', badgeVariant: 'secondary' },
+  location: { icon: '📍', labelKey: 'explore.types.location', badgeVariant: 'outline' },
+};
 
 export default function ExploreKnowledgeScreen() {
   const router = useRouter();
@@ -36,20 +51,12 @@ export default function ExploreKnowledgeScreen() {
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const safeAreaInsets = useSafeAreaInsets();
 
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedArticleType, setSelectedArticleType] = useState<ArticleType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
+
   const scrollViewRef = useRef<ScrollView>(null);
-  const [expandedCategoryId, setExpandedCategoryId] = useState<string>('beer');
-  const [activeSubTabs, setActiveSubTabs] = useState<Record<string, ActiveSectionTab>>({
-    beer: 'origin',
-    wine: 'origin',
-    coffee: 'origin',
-    spirits: 'origin',
-    tea: 'origin',
-    cocktail: 'origin',
-    'soda-tonics': 'origin',
-    other: 'origin',
-  });
 
   useFocusEffect(
     useCallback(() => {
@@ -62,588 +69,327 @@ export default function ExploreKnowledgeScreen() {
     }, [])
   );
 
-  const knowledgeBase = useMemo(() => {
-    return getDrinkKnowledgeBase(german);
-  }, [german]);
-
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
   };
 
+  const currentLanguage = german ? 'de' : 'en';
+
   const categories = useMemo(() => {
-    return ['All', ...knowledgeBase.map((item) => item.archetype)];
-  }, [knowledgeBase]);
+    return [
+      { id: 'all', name: t('common.allShort'), icon: '🌟', archetype: undefined },
+      ...getCategories().map((c) => ({
+        id: c.id,
+        name: german && c.archetype ? translateArchetype(c.archetype as BeverageArchetype) : c.name,
+        icon: c.icon || '🍹',
+        archetype: c.archetype,
+      })),
+    ];
+  }, [t, german]);
 
-  const filteredKnowledge = useMemo(() => {
-    return knowledgeBase.filter((item) => {
-      const matchesCategory =
-        selectedCategory === 'All' || item.archetype === selectedCategory;
+  const articleTypesList = useMemo(() => {
+    return [
+      { id: 'all' as const, label: t('explore.types.all'), icon: '✨' },
+      { id: 'general' as const, label: t('explore.types.general'), icon: '📖' },
+      { id: 'ingredient' as const, label: t('explore.types.ingredient'), icon: '🌾' },
+      { id: 'location' as const, label: t('explore.types.location'), icon: '📍' },
+    ];
+  }, [t]);
 
-      const q = searchQuery.toLowerCase().trim();
-      if (!q) return matchesCategory;
-
-      const translatedArchetype = translateArchetype(item.archetype).toLowerCase();
-      const matchesQuery =
-        item.title.toLowerCase().includes(q) ||
-        item.archetype.toLowerCase().includes(q) ||
-        translatedArchetype.includes(q) ||
-        item.tagline.toLowerCase().includes(q) ||
-        item.origin.history.toLowerCase().includes(q) ||
-        item.origin.region.toLowerCase().includes(q) ||
-        item.styles.some(
-          (s) =>
-            s.name.toLowerCase().includes(q) ||
-            s.description.toLowerCase().includes(q) ||
-            s.flavorNotes?.some((n) => n.toLowerCase().includes(q))
-        ) ||
-        item.production.ingredients.some((ing) => ing.toLowerCase().includes(q)) ||
-        item.sensoryProfile.keyAromas.some((aroma) => aroma.toLowerCase().includes(q));
-
-      return matchesCategory && matchesQuery;
+  const filteredArticles = useMemo(() => {
+    return getArticles({
+      category: selectedCategory === 'all' ? undefined : selectedCategory,
+      type: selectedArticleType === 'all' ? undefined : selectedArticleType,
+      searchQuery: searchQuery,
+      language: currentLanguage,
     });
-  }, [selectedCategory, searchQuery, knowledgeBase]);
+  }, [selectedCategory, selectedArticleType, searchQuery, currentLanguage]);
 
-  const toggleExpand = (id: string) => {
-    setExpandedCategoryId((prev) => (prev === id ? '' : id));
+  const handleArticlePress = useCallback(
+    (targetId: string) => {
+      const targetArticle = getArticleById(targetId, currentLanguage);
+      if (!targetArticle) return;
+
+      // Adjust filter if target article is hidden by current category/type filters
+      if (selectedCategory !== 'all' && selectedCategory !== targetArticle.category) {
+        setSelectedCategory('all');
+      }
+      if (selectedArticleType !== 'all' && selectedArticleType !== targetArticle.type) {
+        setSelectedArticleType('all');
+      }
+
+      setExpandedArticleId(targetArticle.id);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    },
+    [selectedCategory, selectedArticleType, currentLanguage]
+  );
+
+  const toggleExpand = (articleId: string) => {
+    setExpandedArticleId((prev) => (prev === articleId ? null : articleId));
   };
 
-  const handleSubTabChange = (categoryId: string, tab: ActiveSectionTab) => {
-    setActiveSubTabs((prev) => ({
-      ...prev,
-      [categoryId]: tab,
-    }));
+  const getCategoryDetails = (catId: string) => {
+    const found = categories.find((c) => c.id === catId);
+    return {
+      name: found ? found.name : catId,
+      icon: found ? found.icon : '🍹',
+      archetype: found?.archetype as BeverageArchetype | undefined,
+    };
   };
 
-  const renderSectionTabButton = (
-    categoryId: string,
-    tab: ActiveSectionTab,
-    label: string,
-    icon: string
-  ) => {
-    const isActive = (activeSubTabs[categoryId] || 'origin') === tab;
-    return (
-      <TouchableOpacity
-        key={tab}
-        activeOpacity={0.7}
-        onPress={() => handleSubTabChange(categoryId, tab)}
-        style={[
-          styles.subTabButton,
-          {
-            backgroundColor: isActive
-              ? colors.primaryContainer
-              : colors.surfaceContainer,
-          },
-        ]}>
-        <Text
-          style={[
-            styles.subTabButtonText,
-            { color: isActive ? colors.onPrimary : colors.textSecondary },
-          ]}>
-          {icon} {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderCategoryCard = (item: DrinkCategoryKnowledge) => {
-    const isExpanded = expandedCategoryId === item.id;
-    const currentTab = activeSubTabs[item.id] || 'origin';
-    const displayArchetype = translateArchetype(item.archetype);
+  const renderArticleCard = (article: DrinkArticle) => {
+    const isExpanded = expandedArticleId === article.id;
+    const catDetails = getCategoryDetails(article.category);
+    const typeInfo = TYPE_CONFIG[article.type] || TYPE_CONFIG.general;
+    const typeLabel = t(typeInfo.labelKey);
+    const relatedArticles = getRelatedArticles(article.id, currentLanguage);
 
     return (
       <View
-        key={item.id}
+        key={article.id}
         style={[
-          styles.card,
+          styles.articleCard,
           {
             backgroundColor: colors.surfaceContainerLow,
             borderColor: isExpanded ? colors.primaryContainer : colors.outlineVariant,
           },
         ]}>
-        {/* Banner with Image */}
+        {/* Header Touchable */}
         <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => toggleExpand(item.id)}
-          style={styles.bannerTouchable}>
-          <View style={styles.imageContainer}>
-            <Image
-              source={item.bannerImage}
-              style={styles.bannerImage}
-              contentFit="cover"
-              transition={200}
-            />
-            <View
-              style={[
-                styles.imageGradientOverlay,
-                {
-                  backgroundColor:
-                    scheme === 'dark' ? 'rgba(28, 28, 25, 0.75)' : 'rgba(28, 28, 25, 0.6)',
-                },
-              ]}
-            />
-            <View style={styles.bannerHeaderContent}>
-              <View style={styles.badgeRow}>
-                <Badge
-                  variant="secondary"
-                  icon={item.icon}
-                  label={displayArchetype}
-                  style={styles.archetypeBadge}
-                />
-                <View
-                  style={[
-                    styles.toggleIndicator,
-                    {
-                      backgroundColor: isExpanded
-                        ? colors.primary
-                        : 'rgba(255, 255, 255, 0.25)',
-                    },
-                  ]}>
-                  <SymbolView
-                    name={{
-                      ios: isExpanded ? 'chevron.up' : 'chevron.down',
-                      android: isExpanded ? 'expand_less' : 'expand_more',
-                      web: isExpanded ? 'expand_less' : 'expand_more',
-                    }}
-                    size={14}
-                    weight="bold"
-                    tintColor="#ffffff"
-                  />
-                </View>
-              </View>
-
-              <Text style={styles.bannerTitle}>{item.title}</Text>
-              <Text style={styles.bannerTagline} numberOfLines={2}>
-                {item.tagline}
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* Quick Highlights Summary Bar */}
-        <View
-          style={[
-            styles.quickInfoBar,
-            {
-              backgroundColor: colors.surfaceContainer,
-              borderBottomColor: colors.outlineVariant,
-            },
-          ]}>
-          <View style={styles.quickInfoItem}>
-            <Text style={[styles.quickInfoLabel, { color: colors.textSecondary }]}>
-              {german ? 'HERKUNFT' : 'ORIGIN'}
-            </Text>
-            <Text style={[styles.quickInfoValue, { color: colors.text }]} numberOfLines={1}>
-              {item.origin.era.split('(')[0].trim()}
-            </Text>
-          </View>
-          <View style={[styles.quickInfoDivider, { backgroundColor: colors.outlineVariant }]} />
-          <View style={styles.quickInfoItem}>
-            <Text style={[styles.quickInfoLabel, { color: colors.textSecondary }]}>
-              {german ? 'REGION' : 'REGION'}
-            </Text>
-            <Text style={[styles.quickInfoValue, { color: colors.text }]} numberOfLines={1}>
-              {item.origin.region.split('&')[0].split('(')[0].trim()}
-            </Text>
-          </View>
-          <View style={[styles.quickInfoDivider, { backgroundColor: colors.outlineVariant }]} />
-          <View style={styles.quickInfoItem}>
-            <Text style={[styles.quickInfoLabel, { color: colors.textSecondary }]}>
-              {german ? 'STILE' : 'STYLES'}
-            </Text>
-            <Text style={[styles.quickInfoValue, { color: colors.text }]} numberOfLines={1}>
-              {item.styles.length} {german ? 'Hauptstile' : 'Major Styles'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Collapsible Expanded Knowledge Base Body */}
-        {isExpanded && (
-          <View style={styles.cardExpandedContent}>
-            {/* Sub-Navigation Pill Tabs */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.subTabsScrollContainer}>
-              {renderSectionTabButton(item.id, 'origin', t('explore.subtabs.origin'), '📜')}
-              {renderSectionTabButton(item.id, 'production', t('explore.subtabs.production'), '🔬')}
-              {renderSectionTabButton(item.id, 'styles', t('explore.subtabs.styles'), '🏷️')}
-              {renderSectionTabButton(item.id, 'sensory', t('explore.subtabs.sensory'), '👃')}
-              {renderSectionTabButton(item.id, 'serving', t('explore.subtabs.serving'), '🧊')}
-              {renderSectionTabButton(item.id, 'facts', t('explore.subtabs.facts'), '💡')}
-            </ScrollView>
-
-            {/* TAB 1: Origin & History */}
-            {currentTab === 'origin' && (
-              <View style={styles.sectionBody}>
-                <View
-                  style={[
-                    styles.infoHighlightBox,
-                    { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant },
-                  ]}>
-                  <Text style={[styles.infoHighlightLabel, { color: colors.secondary }]}>
-                    {german ? 'HISTORISCHE EPOCHE & URSPRUNG' : 'HISTORICAL ERA & ROOTS'}
-                  </Text>
-                  <Text style={[styles.infoHighlightMain, { color: colors.text }]}>
-                    {item.origin.era}
-                  </Text>
-                  <Text style={[styles.infoHighlightSub, { color: colors.textSecondary }]}>
-                    📍 {item.origin.region}
-                  </Text>
-                </View>
-
-                <View style={styles.proseBlock}>
-                  <Text style={[styles.proseParagraph, { color: colors.text }]}>
-                    {item.origin.history}
-                  </Text>
-                </View>
-
-                <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  {german ? 'Historischer Zeitstrahl & Meilensteine' : 'Historical Timeline & Milestones'}
-                </Text>
-                <View style={styles.timelineContainer}>
-                  {item.origin.milestones.map((m, idx) => (
-                    <View key={idx} style={styles.timelineRow}>
-                      <View style={styles.timelineLeftCol}>
-                        <View
-                          style={[
-                            styles.timelineDot,
-                            { backgroundColor: colors.primaryContainer },
-                          ]}
-                        />
-                        {idx < item.origin.milestones.length - 1 && (
-                          <View
-                            style={[
-                              styles.timelineLine,
-                              { backgroundColor: colors.outlineVariant },
-                            ]}
-                          />
-                        )}
-                      </View>
-                      <View style={styles.timelineContent}>
-                        <View
-                          style={[
-                            styles.timelineYearBadge,
-                            { backgroundColor: colors.surfaceContainerHighest },
-                          ]}>
-                          <Text style={[styles.timelineYearText, { color: colors.primary }]}>
-                            {m.year}
-                          </Text>
-                        </View>
-                        <Text style={[styles.timelineEventText, { color: colors.text }]}>
-                          {m.event}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* TAB 2: Craft & Process */}
-            {currentTab === 'production' && (
-              <View style={styles.sectionBody}>
-                <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  {german ? 'Wesentliche Zutaten' : 'Essential Ingredients'}
-                </Text>
-                <View style={styles.ingredientsPillsWrap}>
-                  {item.production.ingredients.map((ing, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.ingredientPill,
-                        { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant },
-                      ]}>
-                      <Text style={[styles.ingredientPillText, { color: colors.text }]}>
-                        🌱 {ing}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-
-                <Text
-                  style={[
-                    styles.subsectionTitle,
-                    { color: colors.primary, marginTop: Spacing.four },
-                  ]}>
-                  {german ? 'Herstellung & Veredelungsprozess' : 'Crafting & Production Journey'}
-                </Text>
-                <View style={styles.processStepsContainer}>
-                  {item.production.steps.map((st, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.processStepCard,
-                        {
-                          backgroundColor: colors.surfaceContainer,
-                          borderColor: colors.outlineVariant,
-                        },
-                      ]}>
-                      <Text style={[styles.processStepName, { color: colors.primary }]}>
-                        {st.name}
-                      </Text>
-                      <Text style={[styles.processStepDesc, { color: colors.textSecondary }]}>
-                        {st.description}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-
-                {item.production.craftTrivia && (
-                  <View
-                    style={[
-                      styles.craftTriviaBox,
-                      {
-                        backgroundColor: colors.surfaceContainerHighest,
-                        borderColor: colors.secondary,
-                      },
-                    ]}>
-                    <Text style={[styles.craftTriviaTitle, { color: colors.secondary }]}>
-                      {german ? '✨ Meister-Handwerkswissen' : '✨ Master Craftsman Insight'}
-                    </Text>
-                    <Text style={[styles.craftTriviaText, { color: colors.text }]}>
-                      {item.production.craftTrivia}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* TAB 3: Styles & Varieties */}
-            {currentTab === 'styles' && (
-              <View style={styles.sectionBody}>
-                <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  {german ? 'Wichtige Stile & Profile' : 'Key Styles & Profiles'}
-                </Text>
-                <View style={styles.stylesList}>
-                  {item.styles.map((styleItem, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.styleCard,
-                        {
-                          backgroundColor: colors.surfaceContainer,
-                          borderColor: colors.outlineVariant,
-                        },
-                      ]}>
-                      <View style={styles.styleCardHeader}>
-                        <Text style={[styles.styleCardName, { color: colors.text }]}>
-                          {styleItem.name}
-                        </Text>
-                        {styleItem.abv && (
-                          <View
-                            style={[
-                              styles.abvBadge,
-                              { backgroundColor: colors.surfaceContainerHighest },
-                            ]}>
-                            <Text style={[styles.abvBadgeText, { color: colors.primary }]}>
-                              {styleItem.abv}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={[styles.styleCardDesc, { color: colors.textSecondary }]}>
-                        {styleItem.description}
-                      </Text>
-
-                      {styleItem.flavorNotes && styleItem.flavorNotes.length > 0 && (
-                        <View style={styles.flavorNotesWrap}>
-                          {styleItem.flavorNotes.map((fn, fIdx) => (
-                            <View
-                              key={fIdx}
-                              style={[
-                                styles.flavorNoteTag,
-                                { backgroundColor: colors.surfaceContainerLowest },
-                              ]}>
-                              <Text style={[styles.flavorNoteTagText, { color: colors.secondary }]}>
-                                • {fn}
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* TAB 4: Tasting & Aroma */}
-            {currentTab === 'sensory' && (
-              <View style={styles.sectionBody}>
-                <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  {german ? 'Typisches Aromenspektrum' : 'Signature Aroma Spectrum'}
-                </Text>
-                <View style={styles.aromaTagsWrap}>
-                  {item.sensoryProfile.keyAromas.map((aroma, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.aromaTag,
-                        { backgroundColor: colors.primaryContainer },
-                      ]}>
-                      <Text style={[styles.aromaTagText, { color: colors.onPrimary }]}>
-                        🌸 {aroma}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-
-                <View
-                  style={[
-                    styles.tastingCalloutCard,
-                    {
-                      backgroundColor: colors.surfaceContainer,
-                      borderColor: colors.outlineVariant,
-                      marginTop: Spacing.four,
-                    },
-                  ]}>
-                  <Text style={[styles.tastingCalloutLabel, { color: colors.secondary }]}>
-                    {german ? 'GESCHMACKSDIMENSIONEN & GAUMENBALANCE' : 'FLAVOR DIMENSIONS & PALATE BALANCE'}
-                  </Text>
-                  <Text style={[styles.tastingCalloutText, { color: colors.text }]}>
-                    {item.sensoryProfile.flavorCharacteristics}
-                  </Text>
-                </View>
-
-                <View
-                  style={[
-                    styles.tastingCalloutCard,
-                    {
-                      backgroundColor: colors.surfaceContainer,
-                      borderColor: colors.outlineVariant,
-                      marginTop: Spacing.three,
-                    },
-                  ]}>
-                  <Text style={[styles.tastingCalloutLabel, { color: colors.primary }]}>
-                    {german ? 'VERKOSTUNGSTECHNIK & BEWERTUNG' : 'HOW TO TASTE & EVALUATE'}
-                  </Text>
-                  <Text style={[styles.tastingCalloutText, { color: colors.text }]}>
-                    {item.sensoryProfile.tastingTechnique}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* TAB 5: Serving & Glass */}
-            {currentTab === 'serving' && (
-              <View style={styles.sectionBody}>
-                <View
-                  style={[
-                    styles.servingTempCard,
-                    {
-                      backgroundColor: colors.surfaceContainer,
-                      borderColor: colors.outlineVariant,
-                    },
-                  ]}>
-                  <Text style={[styles.servingTempLabel, { color: colors.secondary }]}>
-                    🌡️ {german ? 'OPTIMALE SERVIERTEMPERATUR' : 'OPTIMAL SERVING TEMPERATURE'}
-                  </Text>
-                  <Text style={[styles.servingTempValue, { color: colors.text }]}>
-                    {item.serving.idealTemperature}
-                  </Text>
-                </View>
-
-                <Text
-                  style={[
-                    styles.subsectionTitle,
-                    { color: colors.primary, marginTop: Spacing.four },
-                  ]}>
-                  {german ? 'Empfohlene Gläser' : 'Recommended Glassware'}
-                </Text>
-                <View style={styles.glasswareList}>
-                  {item.serving.glassware.map((glass, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.glasswareItem,
-                        {
-                          backgroundColor: colors.surfaceContainer,
-                          borderColor: colors.outlineVariant,
-                        },
-                      ]}>
-                      <Text style={styles.glasswareIcon}>🥂</Text>
-                      <Text style={[styles.glasswareText, { color: colors.text }]}>
-                        {glass}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-
-                <View
-                  style={[
-                    styles.proTipBox,
-                    {
-                      backgroundColor: colors.surfaceContainerHighest,
-                      borderColor: colors.primary,
-                      marginTop: Spacing.four,
-                    },
-                  ]}>
-                  <Text style={[styles.proTipTitle, { color: colors.primary }]}>
-                    💡 {german ? 'Sommelier- & Keller-Profi-Tipp' : 'Sommelier & Cellar Pro-Tip'}
-                  </Text>
-                  <Text style={[styles.proTipText, { color: colors.text }]}>
-                    {item.serving.proTips}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* TAB 6: Trivia & Facts */}
-            {currentTab === 'facts' && (
-              <View style={styles.sectionBody}>
-                <Text style={[styles.subsectionTitle, { color: colors.primary }]}>
-                  {german ? 'Faszinierende Getränke-Fakten & Trivia' : 'Intriguing Beverage Lore & Trivia'}
-                </Text>
-                <View style={styles.factsList}>
-                  {item.funFacts.map((fact, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.factCard,
-                        {
-                          backgroundColor: colors.surfaceContainer,
-                          borderColor: colors.outlineVariant,
-                        },
-                      ]}>
-                      <View
-                        style={[
-                          styles.factNumberBadge,
-                          { backgroundColor: colors.secondaryFixed },
-                        ]}>
-                        <Text
-                          style={[
-                            styles.factNumberText,
-                            { color: colors.onSecondaryFixed },
-                          ]}>
-                          #{idx + 1}
-                        </Text>
-                      </View>
-                      <Text style={[styles.factCardText, { color: colors.text }]}>
-                        {fact}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Action Footer: Quick Log Drink */}
-            <View
-              style={[
-                styles.cardActionFooter,
-                {
-                  borderTopColor: colors.outlineVariant,
-                  backgroundColor: colors.surfaceContainerLow,
-                },
-              ]}>
-              <Button
-                variant="primary"
-                title={german ? `+ ${displayArchetype} ins Tagebuch eintragen` : `+ Log a ${item.archetype} to Diary`}
-                onPress={() => router.push({ pathname: '/new-entry', params: { archetype: item.archetype } })}
-                fullWidth
+          activeOpacity={0.8}
+          onPress={() => toggleExpand(article.id)}
+          style={styles.cardHeaderTouchable}>
+          <View style={styles.cardTopRow}>
+            <View style={styles.badgeCluster}>
+              <Badge
+                variant="secondary"
+                icon={catDetails.icon}
+                label={catDetails.name}
+                style={styles.categoryBadge}
+              />
+              <Badge
+                variant={typeInfo.badgeVariant}
+                icon={typeInfo.icon}
+                label={typeLabel}
+                style={styles.typeBadge}
               />
             </View>
+
+            <View
+              style={[
+                styles.expandIndicator,
+                {
+                  backgroundColor: isExpanded
+                    ? colors.primary
+                    : colors.surfaceContainerHighest,
+                },
+              ]}>
+              <SymbolView
+                name={{
+                  ios: isExpanded ? 'chevron.up' : 'chevron.down',
+                  android: isExpanded ? 'expand_less' : 'expand_more',
+                  web: isExpanded ? 'expand_less' : 'expand_more',
+                }}
+                size={14}
+                weight="bold"
+                tintColor={isExpanded ? '#ffffff' : colors.textSecondary}
+              />
+            </View>
+          </View>
+
+          <Text style={[styles.articleTitle, { color: colors.text }]}>
+            {article.title}
+          </Text>
+
+          <Text
+            style={[styles.articleSummary, { color: colors.textSecondary }]}
+            numberOfLines={isExpanded ? undefined : 3}>
+            {article.summary}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Specialized Metadata Chips */}
+        {(article.location || article.ingredient) && (
+          <View
+            style={[
+              styles.metadataSection,
+              {
+                backgroundColor: colors.surfaceContainer,
+                borderTopColor: colors.outlineVariant,
+              },
+            ]}>
+            {article.location && (
+              <View style={styles.metadataRow}>
+                <Text style={styles.metaIcon}>📍</Text>
+                <View style={styles.metaContent}>
+                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+                    {t('explore.articleCard.location')}:
+                  </Text>
+                  <Text style={[styles.metaValue, { color: colors.text }]}>
+                    {article.location.region}, {article.location.country}
+                  </Text>
+                  {article.location.coordinates && (
+                    <Text style={[styles.metaCoords, { color: colors.textSecondary }]}>
+                      {article.location.coordinates.lat}° N, {article.location.coordinates.lon}° E
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {article.ingredient && (
+              <View style={styles.metadataRow}>
+                <Text style={styles.metaIcon}>🌾</Text>
+                <View style={styles.metaContent}>
+                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+                    {t('explore.articleCard.ingredient')}:
+                  </Text>
+                  <Text style={[styles.metaValue, { color: colors.text }]}>
+                    {article.ingredient.kind}
+                  </Text>
+                  {article.ingredient.alsoKnownAs &&
+                    article.ingredient.alsoKnownAs.length > 0 && (
+                      <View style={styles.synonymsList}>
+                        <Text style={[styles.synonymsLabel, { color: colors.textSecondary }]}>
+                          {t('explore.articleCard.alsoKnownAs')}
+                        </Text>
+                        <Text style={[styles.synonymsText, { color: colors.secondary }]}>
+                          {article.ingredient.alsoKnownAs.join(' · ')}
+                        </Text>
+                      </View>
+                    )}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Collapsible Expanded Article Body */}
+        {isExpanded && (
+          <View
+            style={[
+              styles.expandedBody,
+              {
+                borderTopColor: colors.outlineVariant,
+                backgroundColor: colors.surfaceContainerLowest,
+              },
+            ]}>
+            <View style={styles.contentParagraph}>
+              <LinkedArticleContent
+                content={article.content}
+                onArticlePress={handleArticlePress}
+                style={[styles.bodyText, { color: colors.text }]}
+              />
+            </View>
+
+            {/* Tags */}
+            {article.tags && article.tags.length > 0 && (
+              <View style={styles.tagsContainer}>
+                {article.tags.map((tag) => (
+                  <View
+                    key={tag}
+                    style={[
+                      styles.tagChip,
+                      {
+                        backgroundColor: colors.surfaceContainer,
+                        borderColor: colors.outlineVariant,
+                      },
+                    ]}>
+                    <Text style={[styles.tagText, { color: colors.textSecondary }]}>
+                      #{tag}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Related Articles Cross-Reference */}
+            {relatedArticles.length > 0 && (
+              <View
+                style={[
+                  styles.relatedArticlesBox,
+                  {
+                    backgroundColor: colors.surfaceContainer,
+                    borderColor: colors.outlineVariant,
+                  },
+                ]}>
+                <Text style={[styles.relatedSectionTitle, { color: colors.primary }]}>
+                  🔗 {t('explore.articleCard.relatedArticles')}
+                </Text>
+                <View style={styles.relatedChipsWrap}>
+                  {relatedArticles.map((rel) => {
+                    const relTypeInfo = TYPE_CONFIG[rel.type] || TYPE_CONFIG.general;
+                    return (
+                      <TouchableOpacity
+                        key={rel.id}
+                        activeOpacity={0.7}
+                        onPress={() => handleArticlePress(rel.id)}
+                        style={[
+                          styles.relatedChipButton,
+                          {
+                            backgroundColor: colors.surfaceContainerHigh,
+                            borderColor: colors.outlineVariant,
+                          },
+                        ]}>
+                        <Text style={styles.relatedChipIcon}>{relTypeInfo.icon}</Text>
+                        <Text style={[styles.relatedChipText, { color: colors.primary }]}>
+                          {rel.title}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Wikipedia Reference Link */}
+            {article.wikipediaUrl && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                accessibilityRole="link"
+                accessibilityHint="Opens Wikipedia article in web browser"
+                onPress={() => Linking.openURL(article.wikipediaUrl!)}
+                style={[
+                  styles.wikipediaLinkButton,
+                  {
+                    backgroundColor: colors.surfaceContainer,
+                    borderColor: colors.outlineVariant,
+                  },
+                ]}>
+                <Text style={styles.wikipediaIcon}>🌐</Text>
+                <View style={styles.wikipediaTextWrap}>
+                  <Text style={[styles.wikipediaLabel, { color: colors.textSecondary }]}>
+                    {t('explore.articleCard.wikipedia')}
+                  </Text>
+                  <Text style={[styles.wikipediaActionText, { color: colors.primary }]}>
+                    {t('explore.articleCard.readOnWikipedia')} ↗
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* Log Drink CTA */}
+            {catDetails.archetype && (
+              <View style={styles.cardActionRow}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  title={
+                    german
+                      ? `+ ${catDetails.name} ins Tagebuch eintragen`
+                      : `+ Log a ${catDetails.name} to Diary`
+                  }
+                  onPress={() =>
+                    router.push({
+                      pathname: '/new-entry',
+                      params: { archetype: catDetails.archetype },
+                    })
+                  }
+                  fullWidth
+                />
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -651,7 +397,11 @@ export default function ExploreKnowledgeScreen() {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: safeAreaInsets.top }]}>
+    <View
+      style={[
+        styles.screen,
+        { backgroundColor: colors.background, paddingTop: safeAreaInsets.top },
+      ]}>
       <ScrollView
         ref={scrollViewRef}
         keyboardShouldPersistTaps="handled"
@@ -679,7 +429,9 @@ export default function ExploreKnowledgeScreen() {
                   {german ? 'Getränke-Enzyklopädie' : 'Drink Encyclopedia'}
                 </ThemedText>
                 <ThemedText style={styles.screenSubtitle} themeColor="textSecondary">
-                  {german ? 'Geschichte, Herkunft, Brautraditionen & Verkostungs-Guides' : 'History, origins, brewing traditions & tasting guides'}
+                  {german
+                    ? 'Wissen, Terroirs, Zutaten & vernetzte Verkostungs-Guides'
+                    : 'History, origins, ingredients & connected tasting guides'}
                 </ThemedText>
               </View>
             </View>
@@ -695,19 +447,39 @@ export default function ExploreKnowledgeScreen() {
               placeholder={t('explore.searchPlaceholder')}
             />
 
-            {/* Filter Pills */}
+            {/* Drink Category Filter Pills (Tier 1) */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filterPillsScroll}>
               {categories.map((cat) => {
-                const isSelected = selectedCategory === cat;
+                const isSelected = selectedCategory === cat.id;
                 return (
                   <CategoryPill
-                    key={cat}
-                    label={cat === 'All' ? t('common.allShort') : translateArchetype(cat)}
+                    key={cat.id}
+                    icon={cat.icon}
+                    label={cat.name}
                     isSelected={isSelected}
-                    onPress={() => setSelectedCategory(cat)}
+                    onPress={() => setSelectedCategory(cat.id)}
+                  />
+                );
+              })}
+            </ScrollView>
+
+            {/* Article Type Filter Pills (Tier 2) */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.typeFilterPillsScroll}>
+              {articleTypesList.map((typeItem) => {
+                const isSelected = selectedArticleType === typeItem.id;
+                return (
+                  <CategoryPill
+                    key={typeItem.id}
+                    icon={typeItem.icon}
+                    label={typeItem.label}
+                    isSelected={isSelected}
+                    onPress={() => setSelectedArticleType(typeItem.id)}
                   />
                 );
               })}
@@ -716,11 +488,14 @@ export default function ExploreKnowledgeScreen() {
 
           {/* Knowledge Articles List */}
           <ThemedView style={styles.articlesList}>
-            {filteredKnowledge.length === 0 ? (
+            {filteredArticles.length === 0 ? (
               <View
                 style={[
                   styles.emptyStateCard,
-                  { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
+                  {
+                    backgroundColor: colors.surfaceContainerLow,
+                    borderColor: colors.outlineVariant,
+                  },
                 ]}>
                 <Text style={styles.emptyStateEmoji}>🔍</Text>
                 <Text style={[styles.emptyStateTitle, { color: colors.text }]}>
@@ -728,8 +503,8 @@ export default function ExploreKnowledgeScreen() {
                 </Text>
                 <Text style={[styles.emptyStateSubtitle, { color: colors.textSecondary }]}>
                   {german
-                    ? `Passe deine Suchanfrage '${searchQuery}' an oder setze die Filter zurück.`
-                    : `Try adjusting your search query '${searchQuery}' or resetting category filters.`}
+                    ? `Passe deine Suchanfrage an oder setze die Filter zurück.`
+                    : `Try adjusting your search query or resetting category and type filters.`}
                 </Text>
                 <Button
                   variant="secondary"
@@ -737,13 +512,14 @@ export default function ExploreKnowledgeScreen() {
                   title={german ? 'Alle Filter zurücksetzen' : 'Reset All Filters'}
                   onPress={() => {
                     setSearchQuery('');
-                    setSelectedCategory('All');
+                    setSelectedCategory('all');
+                    setSelectedArticleType('all');
                   }}
                   style={{ marginTop: Spacing.two }}
                 />
               </View>
             ) : (
-              filteredKnowledge.map(renderCategoryCard)
+              filteredArticles.map(renderArticleCard)
             )}
           </ThemedView>
         </ThemedView>
@@ -760,33 +536,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexGrow: 1,
+    paddingTop: Spacing.two,
   },
   container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
+    flex: 1,
     paddingHorizontal: Spacing.four,
+    gap: Spacing.four,
+    maxWidth: 800,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.three,
     gap: Spacing.three,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
+    marginBottom: Spacing.one,
   },
   titleIconBadge: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#4d0011',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 2,
   },
@@ -808,464 +586,222 @@ const styles = StyleSheet.create({
   },
   filterPillsScroll: {
     gap: Spacing.two,
-    paddingVertical: Spacing.one,
+    paddingVertical: Spacing.half,
+  },
+  typeFilterPillsScroll: {
+    gap: Spacing.two,
+    paddingVertical: Spacing.half,
   },
   articlesList: {
     gap: Spacing.four,
     paddingBottom: Spacing.six,
   },
-  card: {
-    borderRadius: 24,
+  articleCard: {
+    borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1.5,
     shadowColor: '#4d0011',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  bannerTouchable: {
-    width: '100%',
-  },
-  imageContainer: {
-    height: 180,
-    width: '100%',
-    position: 'relative',
-    justifyContent: 'flex-end',
-  },
-  bannerImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  imageGradientOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  bannerHeaderContent: {
+  cardHeaderTouchable: {
     padding: Spacing.four,
-    gap: Spacing.one,
+    gap: Spacing.two,
   },
-  badgeRow: {
+  cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.one,
   },
-  archetypeBadge: {
+  badgeCluster: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.two,
+    flexWrap: 'wrap',
+  },
+  categoryBadge: {
     paddingHorizontal: Spacing.two + 2,
     paddingVertical: 4,
     borderRadius: 12,
-    gap: 4,
   },
-  badgeEmoji: {
-    fontSize: 13,
+  typeBadge: {
+    paddingHorizontal: Spacing.two + 2,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  toggleIndicator: {
+  expandIndicator: {
     width: 28,
     height: 28,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bannerTitle: {
-    color: '#ffffff',
-    fontSize: 22,
+  articleTitle: {
+    fontSize: 20,
     fontWeight: '800',
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    lineHeight: 26,
   },
-  bannerTagline: {
-    color: '#f0ede9',
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+  articleSummary: {
+    fontSize: 14,
+    lineHeight: 20,
   },
-  quickInfoBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
+  metadataSection: {
+    paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two + 2,
-    paddingHorizontal: Spacing.three,
-    borderBottomWidth: 1,
+    borderTopWidth: 1,
+    gap: Spacing.two,
   },
-  quickInfoItem: {
-    alignItems: 'center',
+  metadataRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.two,
+  },
+  metaIcon: {
+    fontSize: 16,
+    marginTop: 2,
+  },
+  metaContent: {
     flex: 1,
     gap: 2,
   },
-  quickInfoLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  quickInfoValue: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  quickInfoDivider: {
-    width: 1,
-    height: 20,
-  },
-  cardExpandedContent: {
-    paddingTop: Spacing.three,
-  },
-  subTabsScrollContainer: {
-    paddingHorizontal: Spacing.three,
-    gap: Spacing.two,
-    paddingBottom: Spacing.two,
-  },
-  subTabButton: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  subTabButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  sectionBody: {
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.four,
-    gap: Spacing.three,
-  },
-  infoHighlightBox: {
-    padding: Spacing.three,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 4,
-  },
-  infoHighlightLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  infoHighlightMain: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  infoHighlightSub: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  proseBlock: {
-    marginVertical: Spacing.one,
-  },
-  proseParagraph: {
-    fontSize: 14,
-    lineHeight: 22,
-    fontWeight: '400',
-  },
-  subsectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  timelineContainer: {
-    gap: 0,
-    marginTop: Spacing.one,
-  },
-  timelineRow: {
-    flexDirection: 'row',
-  },
-  timelineLeftCol: {
-    alignItems: 'center',
-    width: 24,
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: 6,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    marginVertical: 4,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingBottom: Spacing.three,
-    paddingLeft: Spacing.two,
-    gap: 4,
-  },
-  timelineYearBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  timelineYearText: {
+  metaLabel: {
     fontSize: 11,
     fontWeight: '700',
-  },
-  timelineEventText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  ingredientsPillsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  ingredientPill: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  ingredientPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  processStepsContainer: {
-    gap: Spacing.two,
-  },
-  processStepCard: {
-    padding: Spacing.three,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 4,
-  },
-  processStepName: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  processStepDesc: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  craftTriviaBox: {
-    padding: Spacing.three,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderLeftWidth: 4,
-    gap: 4,
-    marginTop: Spacing.two,
-  },
-  craftTriviaTitle: {
-    fontSize: 12,
-    fontWeight: '800',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  craftTriviaText: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontStyle: 'italic',
-  },
-  stylesList: {
-    gap: Spacing.two,
-  },
-  styleCard: {
-    padding: Spacing.three,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: Spacing.one,
-  },
-  styleCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  styleCardName: {
+  metaValue: {
     fontSize: 14,
-    fontWeight: '700',
-    flex: 1,
-  },
-  abvBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  abvBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  styleCardDesc: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  flavorNotesWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: Spacing.one,
-  },
-  flavorNoteTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  flavorNoteTagText: {
-    fontSize: 11,
     fontWeight: '600',
   },
-  aromaTagsWrap: {
+  metaCoords: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  synonymsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.two,
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
   },
-  aromaTag: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  aromaTagText: {
+  synonymsLabel: {
     fontSize: 12,
-    fontWeight: '700',
   },
-  tastingCalloutCard: {
-    padding: Spacing.three,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 4,
-  },
-  tastingCalloutLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  tastingCalloutText: {
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  servingTempCard: {
-    padding: Spacing.three,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 4,
-  },
-  servingTempLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  servingTempValue: {
-    fontSize: 13,
+  synonymsText: {
+    fontSize: 12,
     fontWeight: '600',
-    lineHeight: 18,
   },
-  glasswareList: {
+  expandedBody: {
+    padding: Spacing.four,
+    borderTopWidth: 1,
+    gap: Spacing.four,
+  },
+  contentParagraph: {
+    paddingVertical: Spacing.one,
+  },
+  bodyText: {
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.one + 2,
   },
-  glasswareItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.two + 2,
+  tagChip: {
+    paddingHorizontal: Spacing.two + 2,
+    paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    gap: Spacing.two,
   },
-  glasswareIcon: {
-    fontSize: 16,
-  },
-  glasswareText: {
-    fontSize: 13,
+  tagText: {
+    fontSize: 12,
     fontWeight: '600',
   },
-  proTipBox: {
+  relatedArticlesBox: {
     padding: Spacing.three,
     borderRadius: 14,
     borderWidth: 1,
-    borderLeftWidth: 4,
-    gap: 4,
-  },
-  proTipTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  proTipText: {
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  factsList: {
     gap: Spacing.two,
   },
-  factCard: {
+  relatedSectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  relatedChipsWrap: {
     flexDirection: 'row',
-    padding: Spacing.three,
-    borderRadius: 14,
-    borderWidth: 1,
+    flexWrap: 'wrap',
     gap: Spacing.two,
   },
-  factNumberBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
+  relatedChipButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  factNumberText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  factCardText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  cardActionFooter: {
-    padding: Spacing.three,
-    borderTopWidth: 1,
-  },
-  quickLogButton: {
-    paddingVertical: 12,
+    paddingHorizontal: Spacing.two + 4,
+    paddingVertical: Spacing.one + 2,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
+    gap: 6,
   },
-  quickLogButtonText: {
+  relatedChipIcon: {
+    fontSize: 13,
+  },
+  relatedChipText: {
     fontSize: 13,
     fontWeight: '700',
   },
-  emptyStateCard: {
+  wikipediaLinkButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.five,
+    padding: Spacing.three,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: Spacing.two + 2,
+  },
+  wikipediaIcon: {
+    fontSize: 20,
+  },
+  wikipediaTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  wikipediaLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  wikipediaActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  cardActionRow: {
+    paddingTop: Spacing.one,
+  },
+  emptyStateCard: {
+    padding: Spacing.six,
     borderRadius: 20,
     borderWidth: 1,
+    alignItems: 'center',
     gap: Spacing.two,
-    marginTop: Spacing.three,
+    marginTop: Spacing.four,
   },
   emptyStateEmoji: {
     fontSize: 40,
+    marginBottom: Spacing.one,
   },
   emptyStateTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
+    textAlign: 'center',
   },
   emptyStateSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 19,
-  },
-  resetFilterButton: {
-    marginTop: Spacing.two,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  resetFilterButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
+    lineHeight: 20,
   },
 });

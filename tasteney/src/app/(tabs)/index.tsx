@@ -18,6 +18,7 @@ import { Button } from '@/components/button';
 import { SearchBar } from '@/components/search-bar';
 import { CategoryPill } from '@/components/category-pill';
 import { getDrinkEntries } from '@/services/storage';
+import { resolveImageUri } from '@/services/image-storage';
 import { DrinkEntry } from '@/types/drink';
 import {
   translateArchetype,
@@ -107,8 +108,9 @@ export default function DiaryHomeScreen() {
   };
 
   const renderItem = ({ item }: { item: DrinkEntry }) => {
-    const displayImage =
-      item.images && item.images.length > 0 ? item.images[0] : getArchetypeFallbackImage(item.archetype);
+    const rawImage = item.images && item.images.length > 0 ? item.images[0] : null;
+    const resolvedImage = rawImage ? resolveImageUri(rawImage) : null;
+    const displayImage = resolvedImage || getArchetypeFallbackImage(item.archetype);
     const dateFormatted = formatDate(item.createdAt, {
       month: 'short',
       day: 'numeric',

@@ -17,6 +17,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { isGerman } from '@/i18n';
 import { BeverageArchetype } from '@/types/drink';
 import { ARCHETYPE_FALLBACK_IMAGES, DEFAULT_ENTRY_IMAGE as DEFAULT_FALLBACK_IMAGE } from '@/constants/drink-images';
+import { resolveImageUri } from '@/services/image-storage';
 
 interface ImageSelectorProps {
   images: string[];
@@ -125,7 +126,8 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded, archetype
   };
 
   const fallbackImage = (archetype && ARCHETYPE_FALLBACK_IMAGES[archetype]) || DEFAULT_FALLBACK_IMAGE;
-  const activeDisplayUri = images.length > 0 ? images[activeImageIndex] : fallbackImage;
+  const activeRawUri = images.length > 0 ? images[activeImageIndex] : fallbackImage;
+  const activeDisplayUri = resolveImageUri(activeRawUri) || activeRawUri;
   const isCustomImage = images.length > 0;
 
   return (
@@ -202,6 +204,7 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded, archetype
           contentContainerStyle={styles.thumbnailsContainer}>
           {images.map((uri, index) => {
             const isSelected = index === activeImageIndex;
+            const resolvedThumbnailUri = resolveImageUri(uri) || uri;
             return (
               <TouchableOpacity
                 key={`${uri}-${index}`}
@@ -211,7 +214,7 @@ export function ImageSelector({ images, onChangeImages, onImagesAdded, archetype
                   styles.thumbnailWrapper,
                   isSelected && [styles.thumbnailSelected, { borderColor: colors.primaryContainer }],
                 ]}>
-                <Image source={uri} style={styles.thumbnailImage} contentFit="cover" />
+                <Image source={resolvedThumbnailUri} style={styles.thumbnailImage} contentFit="cover" />
               </TouchableOpacity>
             );
           })}
