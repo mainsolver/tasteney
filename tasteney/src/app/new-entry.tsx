@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,11 +21,11 @@ import { Badge } from '@/components/badge';
 import { RatingSelector } from '@/components/rating-selector';
 import { ImageSelector } from '@/components/image-selector';
 import { SensorySelector } from '@/components/sensory-selector';
-import { saveDrinkEntry, getDrinkEntryById } from '@/services/storage';
+import { saveDrinkEntry, getDrinkEntryById, getDrinkEntries } from '@/services/storage';
 import { resolveLocationFromAsset, getCurrentDeviceLocation } from '@/services/location';
 import { checkServerConnectivity } from '@/services/network';
 import type { ImagePickerAsset } from 'expo-image-picker';
-import { BeverageArchetype, BEVERAGE_SUBTYPES, SensoryDescriptor } from '@/types/drink';
+import { BeverageArchetype, BEVERAGE_SUBTYPES, SensoryDescriptor, DrinkEntry } from '@/types/drink';
 import { translateArchetype, translateSubtype } from '@/i18n';
 
 const ARCHETYPES: { label: BeverageArchetype; icon: string }[] = [
@@ -50,6 +50,7 @@ export default function NewEntryScreen() {
   const insets = useSafeAreaInsets();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
+  const [entries, setEntries] = useState<DrinkEntry[]>([]);
   const [name, setName] = useState('');
   const [manufacturer, setManufacturer] = useState('');
   const [country, setCountry] = useState('');
@@ -59,21 +60,21 @@ export default function NewEntryScreen() {
   const [rating, setRating] = useState<number>(8);
   const [notes, setNotes] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [prevArchetypeParam, setPrevArchetypeParam] = useState(params.archetype);
-  const [archetype, setArchetype] = useState<BeverageArchetype>(() => {
+  const [prevParamsArchetype, setPrevParamsArchetype] = useState(params.archetype);
+  const [selectedArchetype, setSelectedArchetype] = useState<BeverageArchetype | null>(() => {
     if (!editId && params.archetype && ARCHETYPES.some((a) => a.label === params.archetype)) {
       return params.archetype as BeverageArchetype;
     }
-    return 'Wine';
+    return null;
   });
   const [subtype, setSubtype] = useState<string | undefined>(undefined);
 
-  if (params.archetype !== prevArchetypeParam) {
-    setPrevArchetypeParam(params.archetype);
+  if (params.archetype !== prevParamsArchetype) {
+    setPrevParamsArchetype(params.archetype);
     if (!editId && params.archetype) {
       const matched = ARCHETYPES.find((a) => a.label === params.archetype);
       if (matched) {
-        setArchetype(matched.label);
+        setSelectedArchetype(matched.label);
         setSubtype(undefined);
       }
     }
@@ -84,10 +85,68 @@ export default function NewEntryScreen() {
   const [showToast, setShowToast] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
+  const { sortedArchetypes, subtypeCountsByArchetype } = useMemo(() => {
+    const archetypeCounts: Record<string, number> = {};
+    const subtypeCounts: Record<string, Record<string, number>> = {};
+
+    for (const entry of entries) {
+      if (entry.archetype) {
+        archetypeCounts[entry.archetype] = (archetypeCounts[entry.archetype] || 0) + 1;
+        if (entry.subtype) {
+          if (!subtypeCounts[entry.archetype]) {
+            subtypeCounts[entry.archetype] = {};
+          }
+          subtypeCounts[entry.archetype][entry.subtype] =
+            (subtypeCounts[entry.archetype][entry.subtype] || 0) + 1;
+        }
+      }
+    }
+
+    const sorted = [...ARCHETYPES].sort((a, b) => {
+      const countA = archetypeCounts[a.label] || 0;
+      const countB = archetypeCounts[b.label] || 0;
+      if (countB !== countA) {
+        return countB - countA;
+      }
+      return ARCHETYPES.findIndex((x) => x.label === a.label) - ARCHETYPES.findIndex((x) => x.label === b.label);
+    });
+
+    return {
+      sortedArchetypes: sorted,
+      subtypeCountsByArchetype: subtypeCounts,
+    };
+  }, [entries]);
+
+  const archetype: BeverageArchetype =
+    selectedArchetype ?? sortedArchetypes[0]?.label ?? ARCHETYPES[0].label;
+
+  const sortedSubtypes = useMemo(() => {
+    const baseSubtypes = BEVERAGE_SUBTYPES[archetype] || [];
+    const counts = subtypeCountsByArchetype[archetype] || {};
+
+    return [...baseSubtypes].sort((a, b) => {
+      const countA = counts[a] || 0;
+      const countB = counts[b] || 0;
+      if (countB !== countA) {
+        return countB - countA;
+      }
+      return baseSubtypes.indexOf(a) - baseSubtypes.indexOf(b);
+    });
+  }, [archetype, subtypeCountsByArchetype]);
+
   const scrollViewRef = useRef<ScrollView>(null);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionPositions = useRef<Record<string, number>>({});
   const sensoryCategoryPositions = useRef<Record<string, number>>({});
   const activeInputTarget = useRef<{ key: string; sub?: string } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+    };
+  }, []);
 
   const scrollToTarget = useCallback((key: string, sub?: string) => {
     activeInputTarget.current = { key, sub };
@@ -121,6 +180,12 @@ export default function NewEntryScreen() {
         document.documentElement?.scrollTo?.(0, 0);
         document.body?.scrollTo?.(0, 0);
       }
+
+      getDrinkEntries().then((data) => {
+        if (isMounted) {
+          setEntries(data);
+        }
+      });
 
       checkServerConnectivity().then(({ isOffline: offline }) => {
         if (isMounted) {
@@ -160,7 +225,7 @@ export default function NewEntryScreen() {
           setRating(entry.rating ?? 8);
           setNotes(entry.notes || '');
           setImages(entry.images || []);
-          setArchetype(entry.archetype || 'Wine');
+          setSelectedArchetype(entry.archetype || sortedArchetypes[0]?.label || ARCHETYPES[0].label);
           setSubtype(entry.subtype || undefined);
           setSelectedDescriptors(entry.sensoryDescriptors || []);
           setOriginalCreatedAt(entry.createdAt || null);
@@ -170,10 +235,10 @@ export default function NewEntryScreen() {
     return () => {
       isMounted = false;
     };
-  }, [editId]);
+  }, [editId, sortedArchetypes]);
 
   const handleArchetypeChange = (newArchetype: BeverageArchetype) => {
-    setArchetype(newArchetype);
+    setSelectedArchetype(newArchetype);
     setSubtype(undefined);
   };
 
@@ -255,7 +320,10 @@ export default function NewEntryScreen() {
       });
 
       setShowToast(true);
-      setTimeout(() => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+      redirectTimerRef.current = setTimeout(() => {
         setShowToast(false);
         // Reset or navigate back to the diary
         setName('');
@@ -266,7 +334,7 @@ export default function NewEntryScreen() {
         setRating(8);
         setNotes('');
         setImages([]);
-        setArchetype('Wine');
+        setSelectedArchetype(null);
         setSubtype(undefined);
         setSelectedDescriptors([]);
         setOriginalCreatedAt(null);
@@ -278,9 +346,8 @@ export default function NewEntryScreen() {
       }, 1200);
     } catch (error) {
       console.error('Save failed:', error);
-      Alert.alert(t('newEntry.saveFailedTitle'), t('newEntry.saveFailedMessage'));
-    } finally {
       setIsSaving(false);
+      Alert.alert(t('newEntry.saveFailedTitle'), t('newEntry.saveFailedMessage'));
     }
   };
 
@@ -311,7 +378,7 @@ export default function NewEntryScreen() {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.archetypeScroll}>
-            {ARCHETYPES.map((item) => {
+            {sortedArchetypes.map((item) => {
               const isSelected = archetype === item.label;
               return (
                 <CategoryPill
@@ -327,7 +394,7 @@ export default function NewEntryScreen() {
         </View>
 
         {/* Beverage Subtype Selector */}
-        {BEVERAGE_SUBTYPES[archetype]?.length > 0 && (
+        {sortedSubtypes.length > 0 && (
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
@@ -336,7 +403,7 @@ export default function NewEntryScreen() {
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subtypeScroll}>
-              {BEVERAGE_SUBTYPES[archetype].map((item) => {
+              {sortedSubtypes.map((item) => {
                 const isSelected = subtype === item;
                 return (
                   <CategoryPill
@@ -481,6 +548,8 @@ export default function NewEntryScreen() {
           <SensorySelector
             descriptors={selectedDescriptors}
             onChange={setSelectedDescriptors}
+            archetype={archetype}
+            entries={entries}
             onInputActive={(category) => scrollToTarget('sensory', category)}
             onCategoryLayout={(category, y) => {
               sensoryCategoryPositions.current[category] = y;

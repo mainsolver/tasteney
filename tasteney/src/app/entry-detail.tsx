@@ -434,11 +434,27 @@ export default function EntryDetailScreen() {
                             {translateSensoryTag(desc.name)}
                           </Text>
                           {desc.intensity ? (
-                            <View style={[styles.intensityBadge, { backgroundColor: colors.surfaceContainerHighest }]}>
-                              <Text style={[styles.intensityText, { color: colors.primary }]}>
-                                {'★'.repeat(desc.intensity)}
-                                <Text style={{ opacity: 0.3 }}>{'★'.repeat(5 - desc.intensity)}</Text>
-                              </Text>
+                            <View
+                              style={[styles.intensityBadge, { backgroundColor: colors.surfaceContainerHighest }]}
+                              accessible={true}
+                              accessibilityLabel={`${desc.intensity} of 5`}>
+                              <View style={styles.intensitySquareBar}>
+                                {[1, 2, 3, 4, 5].map((level) => {
+                                  const isFilled = level <= desc.intensity!;
+                                  return (
+                                    <View
+                                      key={level}
+                                      style={[
+                                        styles.intensitySquare,
+                                        {
+                                          backgroundColor: isFilled ? colors.primary : colors.surfaceContainerHigh,
+                                          opacity: isFilled ? 1 : 0.4,
+                                        },
+                                      ]}
+                                    />
+                                  );
+                                })}
+                              </View>
                             </View>
                           ) : null}
                         </View>
@@ -852,12 +868,20 @@ const styles = StyleSheet.create({
   },
   intensityBadge: {
     paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  intensityText: {
-    fontSize: 10,
-    fontWeight: '700',
+  intensitySquareBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  intensitySquare: {
+    width: 6,
+    height: 6,
+    borderRadius: 1.5,
   },
   notesCard: {
     marginTop: 10,

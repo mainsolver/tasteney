@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import { SearchBar } from '@/components/search-bar';
 import { CategoryPill } from '@/components/category-pill';
 import { getDrinkEntries } from '@/services/storage';
 import { resolveImageUri } from '@/services/image-storage';
-import { DrinkEntry } from '@/types/drink';
+import { BeverageArchetype, DrinkEntry } from '@/types/drink';
 import {
   translateArchetype,
   translateSubtype,
@@ -37,6 +37,17 @@ const ARCHETYPE_ICONS: Record<string, string> = {
   Cocktail: '🍸',
   Other: '✨',
 };
+
+const BASE_ARCHETYPES: BeverageArchetype[] = [
+  'Wine',
+  'Coffee',
+  'Spirits',
+  'Beer',
+  'Tea',
+  'Cocktail',
+  'Soda & Tonics',
+  'Other',
+];
 
 export default function DiaryHomeScreen() {
   const router = useRouter();
@@ -92,7 +103,29 @@ export default function DiaryHomeScreen() {
     return matchesCategory && matchesQuery;
   });
 
-  const categories = ['All', 'Wine', 'Coffee', 'Spirits', 'Beer', 'Tea', 'Cocktail', 'Soda & Tonics', 'Other'];
+  const { categoryCounts, sortedCategories, sortedArchetypes } = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const entry of entries) {
+      if (entry.archetype) {
+        counts[entry.archetype] = (counts[entry.archetype] || 0) + 1;
+      }
+    }
+
+    const sortedArchetypes = [...BASE_ARCHETYPES].sort((a, b) => {
+      const countA = counts[a] || 0;
+      const countB = counts[b] || 0;
+      if (countB !== countA) {
+        return countB - countA;
+      }
+      return BASE_ARCHETYPES.indexOf(a) - BASE_ARCHETYPES.indexOf(b);
+    });
+
+    return {
+      categoryCounts: counts,
+      sortedCategories: ['All', ...sortedArchetypes],
+      sortedArchetypes,
+    };
+  }, [entries]);
 
   const activeIcon = selectedCategory !== 'All' ? ARCHETYPE_ICONS[selectedCategory] || '✨' : '🍷';
 
@@ -103,7 +136,11 @@ export default function DiaryHomeScreen() {
         params: { archetype: selectedCategory },
       });
     } else {
-      router.push('/new-entry');
+      const topArchetype = sortedArchetypes[0] || BASE_ARCHETYPES[0];
+      router.push({
+        pathname: '/new-entry',
+        params: { archetype: topArchetype },
+      });
     }
   };
 
@@ -201,6 +238,12 @@ export default function DiaryHomeScreen() {
             size="sm"
             title={t('diary.addDrink')}
             onPress={handleAddNewEntry}
+            style={[
+              styles.addButton,
+              {
+                shadowColor: colors.secondaryFixed,
+              },
+            ]}
           />
         </View>
 
@@ -219,16 +262,18 @@ export default function DiaryHomeScreen() {
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={categories}
+          data={sortedCategories}
           keyExtractor={(item) => item}
           contentContainerStyle={styles.categoriesList}
           renderItem={({ item }) => {
             const isSelected = selectedCategory === item;
+            const count = item === 'All' ? entries.length : categoryCounts[item] || 0;
             return (
               <CategoryPill
-                label={item === 'All' ? t('common.allDrinks') : translateArchetype(item)}
+                label={item === 'All' ? t('common.allShort') : translateArchetype(item as BeverageArchetype)}
                 icon={item !== 'All' ? ARCHETYPE_ICONS[item] : undefined}
                 isSelected={isSelected}
+                count={count}
                 onPress={() => setSelectedCategory(item)}
               />
             );
@@ -293,6 +338,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  addButton: {
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
   journalSub: {
     fontSize: 10,

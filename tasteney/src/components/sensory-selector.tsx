@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing } from '@/constants/theme';
-import { SensoryDescriptor } from '@/types/drink';
+import { BeverageArchetype, SensoryDescriptor, DrinkEntry } from '@/types/drink';
 import { translateSensoryTag, isGerman } from '@/i18n';
 
 export type SensoryCategory = 'Smell' | 'Taste' | 'Aftertaste';
@@ -20,8 +20,50 @@ interface CategoryConfig {
   subtitle: string;
   icon: string;
   placeholder: string;
-  presetTags: string[];
 }
+
+export const ARCHETYPE_SENSORY_PRESETS: Record<BeverageArchetype, Record<SensoryCategory, string[]>> = {
+  Wine: {
+    Smell: ['Berry', 'Cherry', 'Oak', 'Earthy'],
+    Taste: ['Blackberry', 'Cherry', 'Apple', 'Peach'],
+    Aftertaste: ['Tannins', 'Minerality', 'Acidity', 'Oak'],
+  },
+  Coffee: {
+    Smell: ['Roast', 'Caramel', 'Hazelnut', 'Floral'],
+    Taste: ['Chocolate', 'Espresso', 'Butterscotch', 'Citrus'],
+    Aftertaste: ['Bitter', 'Warmth', 'Vanilla', 'Sweet'],
+  },
+  Spirits: {
+    Smell: ['Smoky', 'Oak', 'Caramel', 'Spicy'],
+    Taste: ['Cinnamon', 'Tobacco', 'Honey', 'Pepper'],
+    Aftertaste: ['Oak', 'Smoky', 'Warmth', 'Vanilla'],
+  },
+  Beer: {
+    Smell: ['Citrus', 'Tropical', 'Herbal', 'Apple'],
+    Taste: ['Apple', 'Nutty', 'Grassy', 'Cherry'],
+    Aftertaste: ['Acidity', 'Bitter', 'Saline', 'Minerality'],
+  },
+  Tea: {
+    Smell: ['Honey', 'Floral', 'Herbal', 'Citrus'],
+    Taste: ['Bergamot', 'Grassy', 'Peach', 'Honey'],
+    Aftertaste: ['Sweet', 'Minerality', 'Acidity', 'Tannins'],
+  },
+  'Soda & Tonics': {
+    Smell: ['Citrus', 'Herbal', 'Tropical', 'Apple'],
+    Taste: ['Citrus', 'Apple', 'Cherry', 'Peach'],
+    Aftertaste: ['Acidity', 'Saline', 'Minerality', 'Sweet'],
+  },
+  Cocktail: {
+    Smell: ['Citrus', 'Herbal', 'Floral', 'Spicy'],
+    Taste: ['Citrus', 'Cinnamon', 'Cherry', 'Honey'],
+    Aftertaste: ['Acidity', 'Vanilla', 'Smoky', 'Oak'],
+  },
+  Other: {
+    Smell: ['Apple', 'Honey', 'Earthy', 'Tropical'],
+    Taste: ['Apple', 'Honey', 'Peach', 'Grassy'],
+    Aftertaste: ['Acidity', 'Sweet', 'Saline', 'Minerality'],
+  },
+};
 
 const CATEGORIES: CategoryConfig[] = [
   {
@@ -29,65 +71,21 @@ const CATEGORIES: CategoryConfig[] = [
     title: 'Smell',
     subtitle: 'Nose & Aroma Profile',
     icon: '👃',
-    placeholder: 'Type or choose aroma (e.g. Floral Violet, French Oak)...',
-    presetTags: [
-      'Blackberry & Plum',
-      'French Oak & Vanilla',
-      'Floral Violet',
-      'Citrus & Lemon Zest',
-      'Green Apple & Pear',
-      'Red Berries & Cherry',
-      'Tropical Mango & Passionfruit',
-      'Earthy & Forest Floor',
-      'Herbal & Mint',
-      'Spicy Peppercorn',
-      'Roasted Coffee Beans',
-      'Caramel & Toffee',
-      'Smoky & Peat',
-      'Honey & Blossom',
-    ],
+    placeholder: 'Type or choose aroma (e.g. Floral, Oak)...',
   },
   {
     key: 'Taste',
     title: 'Taste',
     subtitle: 'Palate & Flavor Structure',
     icon: '👅',
-    placeholder: 'Type or choose flavor (e.g. Dark Chocolate, Citrus)...',
-    presetTags: [
-      'Dark Chocolate & Cacao',
-      'Espresso Crema',
-      'Bergamot & Citrus',
-      'Ripe Blackberry',
-      'Tart Cherry & Cranberry',
-      'Crisp Green Apple',
-      'Creamy Butterscotch',
-      'Hazelnut & Toasted Almond',
-      'Black Pepper & Clove',
-      'Sweet Molasses & Honey',
-      'Fresh Grassy & Lemongrass',
-      'Juicy Stonefruit & Peach',
-      'Baking Spices & Cinnamon',
-      'Tobacco & Leather',
-    ],
+    placeholder: 'Type or choose flavor (e.g. Chocolate, Citrus)...',
   },
   {
     key: 'Aftertaste',
     title: 'Aftertaste',
     subtitle: 'Finish & Lingering Impressions',
     icon: '✨',
-    placeholder: 'Type or choose finish (e.g. Velvet Tannins, Minerality)...',
-    presetTags: [
-      'Silky Velvet Tannins',
-      'Sweet Smoke & Cedar',
-      'Lingering Minerality',
-      'Warm Oak & Spice',
-      'Bitter Cacao Finish',
-      'Refreshing Crisp Acidity',
-      'Smooth Vanilla Linger',
-      'Long Roasty Warmth',
-      'Clean Saline Finish',
-      'Sweet Honeyed Tail',
-    ],
+    placeholder: 'Type or choose finish (e.g. Tannins, Minerality)...',
   },
 ];
 
@@ -96,9 +94,20 @@ function createDescriptorId(category: string, name: string): string {
   return `desc_${category.toLowerCase()}_${sanitized}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 }
 
+export function isSameSensoryTag(tagA: string, tagB: string): boolean {
+  const a = tagA.trim().toLowerCase();
+  const b = tagB.trim().toLowerCase();
+  if (a === b) return true;
+  const aTrans = translateSensoryTag(tagA).trim().toLowerCase();
+  const bTrans = translateSensoryTag(tagB).trim().toLowerCase();
+  return aTrans === bTrans || aTrans === b || a === bTrans;
+}
+
 interface SensorySelectorProps {
   descriptors: SensoryDescriptor[];
   onChange: (descriptors: SensoryDescriptor[]) => void;
+  archetype?: BeverageArchetype;
+  entries?: DrinkEntry[];
   onInputActive?: (category: SensoryCategory) => void;
   onCategoryLayout?: (category: SensoryCategory, y: number) => void;
 }
@@ -106,6 +115,8 @@ interface SensorySelectorProps {
 export function SensorySelector({
   descriptors,
   onChange,
+  archetype,
+  entries,
   onInputActive,
   onCategoryLayout,
 }: SensorySelectorProps) {
@@ -113,6 +124,106 @@ export function SensorySelector({
   const { t } = useTranslation();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const german = isGerman();
+
+  const activeArchetype = archetype || 'Wine';
+
+  // Aggregate tag usage frequency per category for the current archetype
+  const rankedCategoryCandidates = useMemo(() => {
+    const defaultPresets = ARCHETYPE_SENSORY_PRESETS[activeArchetype] || {
+      Smell: [],
+      Taste: [],
+      Aftertaste: [],
+    };
+
+    const countsByCategory: Record<SensoryCategory, Record<string, number>> = {
+      Smell: {},
+      Taste: {},
+      Aftertaste: {},
+    };
+
+    const userTagsByCategory: Record<SensoryCategory, string[]> = {
+      Smell: [],
+      Taste: [],
+      Aftertaste: [],
+    };
+
+    if (entries && entries.length > 0) {
+      for (const entry of entries) {
+        if (entry.archetype === activeArchetype && entry.sensoryDescriptors) {
+          for (const desc of entry.sensoryDescriptors) {
+            const rawCat = desc.category;
+            const targetCat: SensoryCategory | null =
+              rawCat === 'Smell' ? 'Smell' : rawCat === 'Taste' ? 'Taste' : rawCat === 'Aftertaste' || rawCat === 'Finish' ? 'Aftertaste' : null;
+
+            if (targetCat && desc.name) {
+              const nameTrimmed = desc.name.trim();
+              const nameLower = nameTrimmed.toLowerCase();
+              countsByCategory[targetCat][nameLower] = (countsByCategory[targetCat][nameLower] || 0) + 1;
+
+              // Track canonical user name if not already tracked (translation-aware)
+              if (!userTagsByCategory[targetCat].some((t) => isSameSensoryTag(t, nameTrimmed))) {
+                userTagsByCategory[targetCat].push(nameTrimmed);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const result: Record<SensoryCategory, string[]> = {
+      Smell: [],
+      Taste: [],
+      Aftertaste: [],
+    };
+
+    const categories: SensoryCategory[] = ['Smell', 'Taste', 'Aftertaste'];
+    for (const cat of categories) {
+      const presets = defaultPresets[cat] || [];
+      const userTags = userTagsByCategory[cat] || [];
+
+      // Combine presets and user tags uniquely (translation-aware & case-insensitive)
+      const combined: string[] = [...presets];
+      for (const uTag of userTags) {
+        if (!combined.some((p) => isSameSensoryTag(p, uTag))) {
+          combined.push(uTag);
+        }
+      }
+
+      const getCount = (tag: string): number => {
+        const raw = tag.trim().toLowerCase();
+        const trans = translateSensoryTag(tag).trim().toLowerCase();
+        let count = countsByCategory[cat][raw] || 0;
+        if (trans !== raw && countsByCategory[cat][trans]) {
+          count += countsByCategory[cat][trans];
+        }
+        return count;
+      };
+
+      // Sort descending by usage frequency
+      combined.sort((a, b) => {
+        const countA = getCount(a);
+        const countB = getCount(b);
+        if (countB !== countA) {
+          return countB - countA;
+        }
+
+        const indexA = presets.findIndex((p) => isSameSensoryTag(p, a));
+        const indexB = presets.findIndex((p) => isSameSensoryTag(p, b));
+
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB;
+        }
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+
+        return translateSensoryTag(a).localeCompare(translateSensoryTag(b));
+      });
+
+      result[cat] = combined;
+    }
+
+    return result;
+  }, [activeArchetype, entries]);
 
   const [inputValues, setInputValues] = useState<Record<SensoryCategory, string>>({
     Smell: '',
@@ -126,17 +237,16 @@ export function SensorySelector({
 
   const isCategoryMatch = (descCat: string, targetCat: SensoryCategory) => {
     if (descCat === targetCat) return true;
-    if (targetCat === 'Aftertaste' && descCat === 'Finish') return true;
-    return false;
+    return targetCat === 'Aftertaste' && descCat === 'Finish';
   };
 
   const addTag = (category: SensoryCategory, tagName: string, intensity: number = 3) => {
     const trimmed = tagName.trim();
     if (!trimmed) return;
 
-    // Check if tag already exists in this category
+    // Check if tag already exists in this category (translation-aware)
     const existingIndex = descriptors.findIndex(
-      (d) => isCategoryMatch(d.category, category) && d.name.toLowerCase() === trimmed.toLowerCase()
+      (d) => isCategoryMatch(d.category, category) && isSameSensoryTag(d.name, trimmed)
     );
 
     if (existingIndex >= 0) {
@@ -178,22 +288,54 @@ export function SensorySelector({
         const catPlaceholder = t(`sensory.categories.${category}.placeholder`, { defaultValue: catConfig.placeholder });
 
         // Calculate autocomplete suggestions using localized display and matching
+        const candidateTags = rankedCategoryCandidates[category] || [];
         const trimmedQuery = currentInput.trim().toLowerCase();
-        const existingNames = new Set(categoryDescriptors.map((d) => d.name.toLowerCase()));
+        const existingNames = new Set(
+          categoryDescriptors.flatMap((d) => [
+            d.name.trim().toLowerCase(),
+            translateSensoryTag(d.name).trim().toLowerCase(),
+          ])
+        );
 
-        const matchingPresets = catConfig.presetTags
-          .map((preset) => translateSensoryTag(preset))
-          .filter(
-            (preset) =>
-              !existingNames.has(preset.toLowerCase()) &&
-              (trimmedQuery === '' || preset.toLowerCase().includes(trimmedQuery))
-          );
+        // Deduplicate and filter suggestions against existing descriptors and query
+        const matchingPresets: string[] = [];
+        const seenPresets = new Set<string>();
+
+        for (const preset of candidateTags) {
+          const localized = translateSensoryTag(preset);
+          const localizedLower = localized.trim().toLowerCase();
+          const rawLower = preset.trim().toLowerCase();
+
+          const isAlreadyAdded =
+            existingNames.has(localizedLower) ||
+            existingNames.has(rawLower) ||
+            categoryDescriptors.some((d) => isSameSensoryTag(d.name, preset));
+
+          if (isAlreadyAdded) continue;
+
+          const matchesQuery =
+            trimmedQuery === '' ||
+            localizedLower.includes(trimmedQuery) ||
+            rawLower.includes(trimmedQuery);
+
+          if (matchesQuery && !seenPresets.has(localizedLower)) {
+            seenPresets.add(localizedLower);
+            matchingPresets.push(localized);
+            if (matchingPresets.length >= 4) break;
+          }
+        }
 
         const hasExactMatch =
-          categoryDescriptors.some((d) => d.name.toLowerCase() === trimmedQuery) ||
-          matchingPresets.some((preset) => preset.toLowerCase() === trimmedQuery);
+          trimmedQuery.length > 0 &&
+          (existingNames.has(trimmedQuery) ||
+            existingNames.has(translateSensoryTag(trimmedQuery).toLowerCase()) ||
+            candidateTags.some((preset) => isSameSensoryTag(preset, trimmedQuery)));
 
-        const showCustomOption = trimmedQuery.length > 0 && !hasExactMatch && !existingNames.has(trimmedQuery);
+        const showCustomOption =
+          trimmedQuery.length > 0 &&
+          !hasExactMatch &&
+          !existingNames.has(trimmedQuery) &&
+          !existingNames.has(translateSensoryTag(trimmedQuery).toLowerCase());
 
         return (
           <View
@@ -290,9 +432,9 @@ export function SensorySelector({
                       </TouchableOpacity>
                     )}
 
-                    {matchingPresets.slice(0, currentInput.trim().length > 0 ? 6 : 8).map((preset) => (
+                    {matchingPresets.map((preset, idx) => (
                       <TouchableOpacity
-                        key={preset}
+                        key={`suggestion-${category}-${preset}-${idx}`}
                         activeOpacity={0.7}
                         onPress={() => addTag(category, preset)}
                         style={[

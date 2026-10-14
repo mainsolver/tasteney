@@ -186,6 +186,10 @@ export function Button({
   const sizeStyle = getSizeStyles();
 
   const renderIcon = () => {
+    if (loading) {
+      return <ActivityIndicator size="small" color={variantStyle.iconColor} />;
+    }
+
     if (!icon) return null;
 
     if (React.isValidElement(icon)) {
@@ -223,21 +227,15 @@ export function Button({
         (disabled || loading) && styles.disabled,
         style,
       ]}>
-      {loading ? (
-        <ActivityIndicator size="small" color={variantStyle.text.color} />
-      ) : (
-        <>
-          {iconPosition === 'left' && renderIcon()}
-          {children ? (
-            children
-          ) : title ? (
-            <Text style={[styles.baseText, sizeStyle.text, variantStyle.text, textStyle]}>
-              {title}
-            </Text>
-          ) : null}
-          {iconPosition === 'right' && renderIcon()}
-        </>
-      )}
+      {iconPosition === 'left' && renderIcon()}
+      {children ? (
+        children
+      ) : title ? (
+        <Text style={[styles.baseText, sizeStyle.text, variantStyle.text, textStyle]}>
+          {title}
+        </Text>
+      ) : null}
+      {iconPosition === 'right' && renderIcon()}
     </TouchableOpacity>
   );
 }

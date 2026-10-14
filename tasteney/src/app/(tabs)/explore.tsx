@@ -57,6 +57,8 @@ export default function ExploreKnowledgeScreen() {
   const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
+  const cardOffsetsRef = useRef<Record<string, number>>({});
+  const listOffsetYRef = useRef<number>(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,7 +80,7 @@ export default function ExploreKnowledgeScreen() {
 
   const categories = useMemo(() => {
     return [
-      { id: 'all', name: t('common.allShort'), icon: '🌟', archetype: undefined },
+      { id: 'all', name: t('common.all'), icon: '🌟', archetype: undefined },
       ...getCategories().map((c) => ({
         id: c.id,
         name: german && c.archetype ? translateArchetype(c.archetype as BeverageArchetype) : c.name,
@@ -111,6 +113,11 @@ export default function ExploreKnowledgeScreen() {
       const targetArticle = getArticleById(targetId, currentLanguage);
       if (!targetArticle) return;
 
+      // Clear search query so destination article is guaranteed to be visible
+      if (searchQuery) {
+        setSearchQuery('');
+      }
+
       // Adjust filter if target article is hidden by current category/type filters
       if (selectedCategory !== 'all' && selectedCategory !== targetArticle.category) {
         setSelectedCategory('all');
@@ -120,9 +127,22 @@ export default function ExploreKnowledgeScreen() {
       }
 
       setExpandedArticleId(targetArticle.id);
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+
+      const scrollToTarget = () => {
+        const cardY = cardOffsetsRef.current[targetId];
+        const listY = listOffsetYRef.current || 0;
+        const targetY = typeof cardY === 'number' ? listY + cardY : 0;
+        const scrollY = Math.max(0, targetY - Spacing.two);
+
+        scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
+      };
+
+      // Schedule scrolling after layout updates settle
+      requestAnimationFrame(() => {
+        setTimeout(scrollToTarget, 60);
+      });
     },
-    [selectedCategory, selectedArticleType, currentLanguage]
+    [selectedCategory, selectedArticleType, searchQuery, currentLanguage]
   );
 
   const toggleExpand = (articleId: string) => {
@@ -148,6 +168,9 @@ export default function ExploreKnowledgeScreen() {
     return (
       <View
         key={article.id}
+        onLayout={(e) => {
+          cardOffsetsRef.current[article.id] = e.nativeEvent.layout.y;
+        }}
         style={[
           styles.articleCard,
           {
@@ -487,7 +510,11 @@ export default function ExploreKnowledgeScreen() {
           </ThemedView>
 
           {/* Knowledge Articles List */}
-          <ThemedView style={styles.articlesList}>
+          <ThemedView
+            style={styles.articlesList}
+            onLayout={(e) => {
+              listOffsetYRef.current = e.nativeEvent.layout.y;
+            }}>
             {filteredArticles.length === 0 ? (
               <View
                 style={[
@@ -726,6 +753,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     gap: Spacing.two,
+    overflow: 'hidden',
   },
   relatedSectionTitle: {
     fontSize: 13,
@@ -746,6 +774,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     gap: 6,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   relatedChipIcon: {
     fontSize: 13,
@@ -753,6 +783,7 @@ const styles = StyleSheet.create({
   relatedChipText: {
     fontSize: 13,
     fontWeight: '700',
+    flexShrink: 1,
   },
   wikipediaLinkButton: {
     flexDirection: 'row',
