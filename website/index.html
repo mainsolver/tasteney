@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tasteney – Dein Begleiter auf deinem Weg des Genusses</title>
+  <meta name="description" content="Tasteney ist dein elegantes Verkostungstagebuch für Wein, Kaffee, Bier, Tee, Spirituosen und mehr. Halte Aromen und Bewertungen offline-first fest – mit geplanter Backup-Unterstützung.">
+  <meta name="keywords" content="Tasteney, Verkostungstagebuch, Weinverkostung, Kaffee Sensorik, Bier Tasting, Tasting App, Genuss Journal">
+  <meta name="author" content="Tasteney Team">
+
+  <!-- OpenGraph / Social Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Tasteney – Dein persönliches Verkostungstagebuch">
+  <meta property="og:description" content="Erfasse Aromaprofile, bewerte Nuancen und entdecke neue Genusswelten mit Tasteney – immer offline einsatzbereit.">
+  <meta property="og:image" content="assets/logo.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/logo.png">
+
+  <!-- Bunny Fonts: Newsreader (Editorial Serif) & Manrope (Clean Modern Sans) -->
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link href="https://fonts.bunny.net/css?family=Manrope:wght@300;400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="site-header" id="header">
+    <div class="container nav-container">
+      <a href="#" class="brand-logo" aria-label="Tasteney Startseite">
+        <img src="assets/logo.png" alt="Tasteney Logo" class="brand-icon" width="40" height="40">
+        <span class="brand-name">Tasteney</span>
+      </a>
+
+      <nav class="desktop-nav" aria-label="Hauptnavigation">
+        <ul class="nav-list">
+          <li><a href="#ueberblick" class="nav-link">Überblick</a></li>
+          <li><a href="#funktionen" class="nav-link">Funktionen</a></li>
+          <li><a href="#sensorik" class="nav-link">Sensorik</a></li>
+          <li><a href="#technologie" class="nav-link">Technologie</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="#sensorik" class="btn btn-sm btn-primary">Entdecken</a>
+        <button class="mobile-menu-toggle" id="menuToggle" aria-label="Menü öffnen" aria-expanded="false">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer -->
+    <div class="mobile-drawer" id="mobileDrawer">
+      <nav class="mobile-nav" aria-label="Mobile Navigation">
+        <ul class="mobile-nav-list">
+          <li><a href="#ueberblick" class="mobile-nav-link">Überblick</a></li>
+          <li><a href="#funktionen" class="mobile-nav-link">Funktionen</a></li>
+          <li><a href="#sensorik" class="mobile-nav-link">Sensorik & Journal</a></li>
+          <li><a href="#technologie" class="mobile-nav-link">Technologie</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section" id="ueberblick">
+      <div class="hero-glow hero-glow-1"></div>
+      <div class="hero-glow hero-glow-2"></div>
+      <div class="container hero-container">
+        <div class="hero-content">
+          <div class="pill-badge hero-badge">
+            <span class="badge-dot"></span>
+            Sensorisches Tagebuch & Genuss-Begleiter
+          </div>
+          <h1 class="hero-title">
+            Jeden Schluck bewusst erleben, verstehen & erinnern.
+          </h1>
+          <p class="hero-description">
+            Tasteney ist dein persönliches Verkostungsjournal für Wein, Kaffee, Bier, Tee, Cocktails und feine Spirituosen. Halte komplexe Aromaprofile fest, bewerte feinste Nuancen und baue deine Genuss-Bibliothek auf – immer offline einsatzbereit und mit geplanter Cloud-Backup-Unterstützung.
+          </p>
+          <div class="hero-cta-group">
+            <a href="#sensorik" class="btn btn-primary">
+              <span>Sensorik entdecken</span>
+              <svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <a href="#funktionen" class="btn btn-secondary">
+              Funktionsübersicht
+            </a>
+          </div>
+
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-number">1–5</span>
+              <span class="stat-label">Aroma-Intensität</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-number">1–10</span>
+              <span class="stat-label">Präzisions-Skala</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-number">Offline-First</span>
+              <span class="stat-label">Immer einsatzbereit</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-preview">
+          <div class="sample-journal-card glass-card">
+            <div class="card-glass-glow"></div>
+            <div class="card-header-row">
+              <div class="archetype-pill archetype-wine">
+                <span class="archetype-dot"></span>
+                Wein · Rotwein
+              </div>
+              <div class="rating-badge">
+                <span class="rating-icon">★</span>
+                <span class="rating-score">9.4</span>
+                <span class="rating-max">/10</span>
+              </div>
+            </div>
+
+            <div class="sample-card-image-wrap">
+              <img src="assets/images/drinks/wine.jpg" alt="Beispiel Rotwein Verkostung" class="sample-card-image" loading="lazy">
+              <div class="image-overlay-gradient"></div>
+              <div class="image-caption">
+                <span class="drink-year">2018</span>
+                <span class="drink-region">Piemont, Italien</span>
+              </div>
+            </div>
+
+            <div class="sample-card-body">
+              <h3 class="drink-title">Barolo Cannubi DOCG</h3>
+              <p class="drink-producer">Azienda Agricola E. Pira & Figli</p>
+
+              <div class="flavor-pills-row">
+                <span class="flavor-chip">Reife Kirsche <small>•••••</small></span>
+                <span class="flavor-chip">Leder & Tabak <small>••••</small></span>
+                <span class="flavor-chip">Veilchen <small>•••</small></span>
+                <span class="flavor-chip">Trüffel <small>••••</small></span>
+              </div>
+
+              <blockquote class="tasting-notes-quote">
+                „Samtene Tannine, enorme Tiefe mit langem Abgang nach Waldbeeren und Zedernholz. Perfekt ausbalanciert.“
+              </blockquote>
+
+              <div class="sample-card-footer">
+                <span class="entry-date">12. Oktober 2026</span>
+                <span class="entry-status">Im Tagebuch gespeichert</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Pillars Section -->
+    <section class="pillars-section">
+      <div class="container">
+        <div class="pillars-grid">
+          <div class="pillar-card">
+            <div class="pillar-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 class="pillar-title">Offline-First & Datensicherheit</h3>
+            <p class="pillar-desc">Verkoste und protokolliere jederzeit ohne Internetverbindung. Deine Daten werden lokal gesichert und sind für zukünftige Backups vorbereitet.</p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>
+            </div>
+            <h3 class="pillar-title">Sensorik & Aromamatrix</h3>
+            <p class="pillar-desc">Erfasse Aromen und Geschmacksausprägungen mit 5-stufiger Intensitätsskala von feinherb bis rauchig.</p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <h3 class="pillar-title">Enzyklopädie & Wissen</h3>
+            <p class="pillar-desc">Umfassende Wissensdatenbank zu verschiedenen Getränkestilen mit Produktionsmethoden, Serviertipps und Glasempfehlungen.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Core Features Section -->
+    <section class="features-section" id="funktionen">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="pill-badge section-badge">Kernfunktionen</div>
+          <h2 class="section-title">Für jeden Genießer maßgeschneidert</h2>
+          <p class="section-subtitle">Vom schnellen Espresso-Check am Morgen bis zum festlichen Weindinner – Tasteney strukturiert deine Sinneseindrücke.</p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Feature 1 -->
+          <div class="feature-card glass-card">
+            <div class="feature-icon-wrapper">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <h3 class="feature-title">Verkostungstagebuch</h3>
+            <p class="feature-desc">
+              Dokumentiere jedes Getränk mit Name, Erzeuger, Jahrgang, Herkunftsregion, persönlicher Bewertung (1–10) und eigenen hochauflösenden Fotos.
+            </p>
+            <ul class="feature-bullet-list">
+              <li>Präzise 1–10 Stern-/Punktskala</li>
+              <li>Produzenten- und Standortangaben</li>
+              <li>Eigene Verkostungsnotizen und Rezensionen</li>
+            </ul>
+          </div>
+
+          <!-- Feature 2 -->
+          <div class="feature-card glass-card">
+            <div class="feature-icon-wrapper">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <h3 class="feature-title">Sensorik & Aromen-Guide</h3>
+            <p class="feature-desc">
+              Wähle aus kuratierten sensorischen Deskriptoren für jede Kategorie. Passe die Intensität stufenlos an und schärfe deinen Gaumen mit jedem Eintrag.
+            </p>
+            <ul class="feature-bullet-list">
+              <li>Kategorienspezifische Aromadeskriptoren</li>
+              <li>Intensitätsbewertung in 5 Stufen</li>
+              <li>Schnelle visuelle Profilübersicht</li>
+            </ul>
+          </div>
+
+          <!-- Feature 3 -->
+          <div class="feature-card glass-card">
+            <div class="feature-icon-wrapper">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </div>
+            <h3 class="feature-title">Wissensdatenbank & Entdecken</h3>
+            <p class="feature-desc">
+              Lerne die Feinheiten deiner Lieblingsgetränke kennen: Von Kaffeeröstgraden und Brauverfahren über Weinstile bis hin zu Destillationsmethoden.
+            </p>
+            <ul class="feature-bullet-list">
+              <li>Strukturierter Überblick über Getränkestile</li>
+              <li>Detailwissen zu Herstellungsverfahren</li>
+              <li>Optimale Serviertemperaturen und Gläser</li>
+            </ul>
+          </div>
+
+          <!-- Feature 4 -->
+          <div class="feature-card glass-card">
+            <div class="feature-icon-wrapper">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3 class="feature-title">Offline-First & Lokale Speicherung</h3>
+            <p class="feature-desc">
+              Erfasse deine Verkostungen überall zuverlässig offline – ob im Weinkeller, Flugzeug oder abgelegenen Bars. Erweiterbar um zukünftige Backup- und Sync-Optionen.
+            </p>
+            <ul class="feature-bullet-list">
+              <li>Immer offline einsatzbereit ohne Internetzwang</li>
+              <li>Lokale Speicherung & Media-Caching für Tasting-Fotos</li>
+              <li>Vorbereitet für zukünftige Cloud-Backups & Export</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Sensory Demo Section -->
+    <section class="sensory-demo-section" id="sensorik">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="pill-badge section-badge">Interaktiver Einblick</div>
+          <h2 class="section-title">Erlebe das Verkostungsjournal</h2>
+          <p class="section-subtitle">Wähle eine Kategorie und sieh, wie Tasteney Aromen, Bewertungen und Notizen zu einem harmonischen Tagebucheintrag vereint.</p>
+        </div>
+
+        <!-- Category Selector Buttons -->
+        <div class="interactive-category-pills" id="categoryTabs" role="tablist">
+          <button class="filter-pill active" data-target="wine" role="tab" aria-selected="true">Wein</button>
+          <button class="filter-pill" data-target="coffee" role="tab" aria-selected="false">Kaffee</button>
+          <button class="filter-pill" data-target="beer" role="tab" aria-selected="false">Bier</button>
+          <button class="filter-pill" data-target="spirits" role="tab" aria-selected="false">Spirituosen</button>
+          <button class="filter-pill" data-target="tea" role="tab" aria-selected="false">Tee</button>
+        </div>
+
+        <!-- Interactive Preview Showcase -->
+        <div class="demo-card-container">
+          <div class="interactive-preview-card glass-card" id="demoCard">
+            <div class="demo-card-image-col">
+              <img id="demoImage" src="assets/images/drinks/wine.jpg" alt="Verkostungsvorschau" class="demo-image">
+              <div class="demo-image-badge" id="demoArchetypeBadge">Wein · Rotwein</div>
+            </div>
+
+            <div class="demo-card-content-col">
+              <div class="demo-header-meta">
+                <div>
+                  <h3 class="demo-drink-name" id="demoDrinkName">Château Margaux Premier Grand Cru</h3>
+                  <p class="demo-producer-origin" id="demoProducerOrigin">Château Margaux · Bordeaux, Frankreich (2015)</p>
+                </div>
+                <div class="demo-rating-box">
+                  <span class="demo-rating-star">★</span>
+                  <span class="demo-rating-value" id="demoRating">9.6</span>
+                  <span class="demo-rating-scale">/10</span>
+                </div>
+              </div>
+
+              <div class="demo-descriptors-section">
+                <h4 class="demo-section-label">Sensorisches Aromaprofil:</h4>
+                <div class="demo-flavor-tags" id="demoFlavorTags">
+                  <span class="flavor-tag">Schwarze Johannisbeere <span class="intensity-dots">•••••</span></span>
+                  <span class="flavor-tag">Zeder & Tabak <span class="intensity-dots">••••</span></span>
+                  <span class="flavor-tag">Graphit <span class="intensity-dots">•••</span></span>
+                  <span class="flavor-tag">Dunkle Schokolade <span class="intensity-dots">••••</span></span>
+                </div>
+              </div>
+
+              <div class="demo-notes-section">
+                <h4 class="demo-section-label">Verkostungsnotiz:</h4>
+                <p class="demo-notes-text" id="demoNotes">
+                  „Außergewöhnliche Eleganz und Seidigkeit. Unglaubliche Balance zwischen frischer Säure und konzentrierter Frucht. Jetzt schon großartig, mit Jahrzehnten Reifepotenzial.“
+                </p>
+              </div>
+
+              <div class="demo-footer-info">
+                <span class="demo-time" id="demoTime">Eintrag gespeichert · Gestern, 20:45 Uhr</span>
+                <span class="demo-verified">✓ Lokal verifiziert</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture & Platform Section -->
+    <section class="tech-section" id="technologie">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="pill-badge section-badge">Architektur & Technik</div>
+          <h2 class="section-title">Moderne, robuste Technologie</h2>
+          <p class="section-subtitle">Entwickelt für reibungslose Performance auf allen Endgeräten mit modernsten Frameworks.</p>
+        </div>
+
+        <div class="tech-grid">
+          <div class="tech-card">
+            <div class="tech-badge">Frontend</div>
+            <h3 class="tech-name">Expo & React Native</h3>
+            <p class="tech-desc">Cross-Platform App für iOS, Android und Web mit schnellen Reaktionszeiten, flüssigen Animationen und nativer Performance.</p>
+          </div>
+
+          <div class="tech-card">
+            <div class="tech-badge">Backend & Modularität</div>
+            <h3 class="tech-name">Spring Boot & Modulith</h3>
+            <p class="tech-desc">Skalierbare modulare Architektur in Kotlin mit Spring Data JDBC, Flyway Migrationen und strikten Modulgrenzen.</p>
+          </div>
+
+          <div class="tech-card">
+            <div class="tech-badge">Design System</div>
+            <h3 class="tech-name">Cellar Glassmorphism</h3>
+            <p class="tech-desc">Elegante Farbpalette aus Burgunderrot, Elfenbein und warmem Champagnergold mit subtilen Glasmorphismus-Effekten.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call to Action Banner -->
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-banner glass-card text-center">
+          <h2 class="cta-title">Bereit, deine Sinne zu schärfen?</h2>
+          <p class="cta-desc">Erlebe bewussten Genuss und erstelle dein eigenes digitales Verkostungstagebuch mit Tasteney.</p>
+          <div class="cta-buttons">
+            <a href="#funktionen" class="btn btn-primary">Funktionen entdecken</a>
+            <a href="#sensorik" class="btn btn-secondary">Aromen-Guide testen</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-brand">
+        <div class="brand-row">
+          <img src="assets/logo.png" alt="Tasteney Logo" class="brand-icon" width="32" height="32">
+          <span class="brand-name">Tasteney</span>
+        </div>
+        <p class="footer-tagline">Dein persönliches Verkostungsjournal für bewusste Genussmomente.</p>
+        <p class="footer-privacy-note">🔒 Offline-First Datenspeicherung mit zukünftiger Cloud-Backup-Unterstützung. Keine Tracker.</p>
+      </div>
+
+      <div class="footer-links-group">
+        <h4 class="footer-heading">Navigation</h4>
+        <ul class="footer-nav">
+          <li><a href="#ueberblick">Überblick</a></li>
+          <li><a href="#funktionen">Funktionen</a></li>
+          <li><a href="#sensorik">Sensorik-Guide</a></li>
+          <li><a href="#technologie">Technologie</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container footer-bottom">
+      <p class="copyright">&copy; 2026 Tasteney. Alle Rechte vorbehalten.</p>
+      <p class="built-with">Gestaltet mit Liebe zum Detail &amp; Genuss.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

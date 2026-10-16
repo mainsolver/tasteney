@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>Admin Dashboard - Tasteney</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --surface-color: #111827;
+            --surface-card: #1f2937;
+            --border-color: #374151;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --badge-admin-bg: rgba(239, 68, 68, 0.2);
+            --badge-admin-text: #fca5a5;
+            --badge-user-bg: rgba(99, 102, 241, 0.2);
+            --badge-user-text: #c7d2fe;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #a5b4fc, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .btn-logout {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-logout:hover {
+            color: #ef4444;
+            border-color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+
+        .stat-title {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .section-card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .filters-toolbar {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem 0.875rem;
+            color: var(--text-main);
+            font-size: 0.875rem;
+            min-width: 260px;
+        }
+
+        .search-input:focus,
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .filter-select {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem 0.875rem;
+            color: var(--text-main);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .user-table th {
+            background-color: var(--surface-color);
+            padding: 0.875rem 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+        }
+
+        .user-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .mono-id {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .user-email {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+        }
+
+        .badge-admin {
+            background-color: var(--badge-admin-bg);
+            color: var(--badge-admin-text);
+        }
+
+        .badge-user {
+            background-color: var(--badge-user-bg);
+            color: var(--badge-user-text);
+        }
+
+        .timestamp {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-muted);
+        }
+
+        .table-footer {
+            padding: 1rem 1.5rem;
+            background-color: var(--surface-color);
+            border-top: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .htmx-indicator {
+            display: none;
+            color: var(--primary);
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+        }
+
+        .htmx-request .htmx-indicator {
+            display: inline;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="brand-logo">TASTENEY ADMIN</div>
+        <div class="nav-actions">
+            <form th:action="@{/admin/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <button type="submit" class="btn-logout">Sign Out</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Total Users</div>
+                <div class="stat-value" th:text="${totalUsers}">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Administrators</div>
+                <div class="stat-value" th:text="${totalAdmins}">0</div>
+            </div>
+        </div>
+
+        <section class="section-card">
+            <div class="section-header">
+                <div class="section-title">Registered Accounts</div>
+                <div class="filters-toolbar">
+                    <input type="text"
+                           name="query"
+                           class="search-input"
+                           placeholder="Search by email..."
+                           hx-get="/admin/htmx/users"
+                           hx-trigger="keyup changed delay:250ms, search"
+                           hx-target="#user-table-container"
+                           hx-include="[name='role']" />
+
+                    <select name="role"
+                            class="filter-select"
+                            hx-get="/admin/htmx/users"
+                            hx-trigger="change"
+                            hx-target="#user-table-container"
+                            hx-include="[name='query']">
+                        <option value="ALL">All Roles</option>
+                        <option value="USER">USER</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </div>
+            </div>
+
+            <div th:replace="~{admin/fragments/user-table :: userTable}"></div>
+        </section>
+    </main>
+
+    <script>
+        document.body.addEventListener('htmx:configRequest', function (evt) {
+            const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+            const header = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+            if (token && header) {
+                evt.detail.headers[header] = token;
+            }
+        });
+    </script>
+</body>
+</html>

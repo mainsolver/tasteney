@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div id="user-table-container" th:fragment="userTable">
+        <div class="table-responsive">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Registered Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="user : ${users}">
+                        <td class="mono-id" th:text="${user.id}">00000000-0000-0000-0000-000000000000</td>
+                        <td class="user-email" th:text="${user.email}">user@example.com</td>
+                        <td>
+                            <span th:class="${user.role.name() == 'ADMIN'} ? 'badge badge-admin' : 'badge badge-user'"
+                                  th:text="${user.role}">
+                                USER
+                            </span>
+                        </td>
+                        <td class="timestamp" th:text="${user.createdAt}">
+                            2026-10-15T12:00:00Z
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(users)}">
+                        <td colspan="4" class="empty-state">
+                            No users found matching the selected criteria.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-footer">
+            <span th:text="${#lists.size(users)} + ' user(s) displayed'">0 user(s) displayed</span>
+        </div>
+    </div>
+</body>
+</html>

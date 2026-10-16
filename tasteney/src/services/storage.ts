@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DrinkEntry } from '@/types/drink';
 import { persistImage, resolveImageUri, deleteImageFile } from '@/services/image-storage';
+import { generateUuid } from '@/utils/uuid';
 
 const STORAGE_KEY = '@tasteney/drink_entries_v1';
 
@@ -85,7 +86,7 @@ export async function saveDrinkEntry(
 
     const newRawEntry: DrinkEntry = {
       ...entryData,
-      id: targetId || `drink_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: targetId || generateUuid(),
       createdAt: entryData.createdAt || existingEntry?.createdAt || new Date().toISOString(),
       images: persistedImages,
     };

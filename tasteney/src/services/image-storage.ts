@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
+import { generateUuid } from '@/utils/uuid';
 
 export const IMAGE_DIR_NAME = 'drink_images';
 
@@ -51,6 +52,18 @@ function getFileExtension(uri: string): string {
     // fallback
   }
   return 'jpg';
+}
+
+/**
+ * Extracts a UUID from a stored image relative path or filename.
+ * Returns the UUID string if found, or null otherwise.
+ */
+export function extractImageUuid(storedUri: string | null | undefined): string | null {
+  if (!storedUri || typeof storedUri !== 'string') {
+    return null;
+  }
+  const match = storedUri.match(/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})/i);
+  return match ? match[1] : null;
 }
 
 /**
@@ -106,7 +119,7 @@ export async function persistImage(sourceUri: string): Promise<string> {
     await ensureImageDirectory();
 
     const ext = getFileExtension(trimmedUri);
-    const filename = `img_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
+    const filename = `img_${generateUuid()}.${ext}`;
     const relativePath = `${IMAGE_DIR_NAME}/${filename}`;
     const targetUri = `${FileSystem.documentDirectory}${relativePath}`;
 
@@ -153,8 +166,8 @@ export function resolveImageUri(storedUri: string | null | undefined): string | 
     return `${FileSystem.documentDirectory}${relativePart}`;
   }
 
-  // Plain filename without directory: "img_xxx.jpg"
-  if (/^img_\d+_[a-zA-Z0-9]+\.[a-zA-Z0-9]+$/.test(trimmedUri)) {
+  // Plain filename without directory: "img_<uuid>.jpg" or "<uuid>.jpg"
+  if (/^(?:img_)?[0-9a-fA-F-]+\.[a-zA-Z0-9]+$/.test(trimmedUri)) {
     return `${FileSystem.documentDirectory}${IMAGE_DIR_NAME}/${trimmedUri}`;
   }
 
