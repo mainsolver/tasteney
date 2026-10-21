@@ -57,7 +57,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: tasteney-be
           file: tasteney-be/Dockerfile
           push: true
           tags: |
