@@ -14,7 +14,7 @@ import java.time.Instant
 class AdminUserInitializer(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
-    @Value("\${tasteney.admin.initial-email:admin-001@tasteney.com}")
+    @Value("\${tasteney.admin.initial-email:admin.t.1@tasteney.com}")
     private val adminEmail: String,
     @Value("\${tasteney.admin.initial-password:}")
     private val configuredPassword: String

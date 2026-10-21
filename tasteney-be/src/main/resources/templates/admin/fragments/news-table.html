@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div id="news-table-container" th:fragment="newsTable">
+        <div class="table-responsive">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Headline</th>
+                        <th>News ID</th>
+                        <th>Image Path</th>
+                        <th>Link</th>
+                        <th>Created At</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="news : ${newsArticles}">
+                        <td>
+                            <span th:class="${news.active} ? 'badge badge-active' : 'badge badge-inactive'"
+                                  th:text="${news.active} ? 'Active' : 'Inactive'">
+                                Active
+                            </span>
+                        </td>
+                        <td class="user-email" style="font-weight: 600;" th:text="${news.headline}">Sample News Headline</td>
+                        <td class="mono-id" th:text="${news.id}">00000000-0000-0000-0000-000000000000</td>
+                        <td>
+                            <span th:if="${news.imagePath != null and !#strings.isEmpty(news.imagePath)}"
+                                  style="color: var(--text-muted); font-size: 0.85rem;"
+                                  th:text="${news.imagePath}">/images/sample.jpg</span>
+                            <span th:if="${news.imagePath == null or #strings.isEmpty(news.imagePath)}"
+                                  style="color: #6b7280; font-size: 0.85rem;">—</span>
+                        </td>
+                        <td>
+                            <a th:if="${news.link != null and !#strings.isEmpty(news.link)}"
+                               th:href="${news.link}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               style="color: #818cf8; text-decoration: none; font-size: 0.85rem;"
+                               th:text="${news.link}">https://example.com</a>
+                            <span th:if="${news.link == null or #strings.isEmpty(news.link)}"
+                                  style="color: #6b7280; font-size: 0.85rem;">—</span>
+                        </td>
+                        <td class="timestamp" th:text="${news.createdAt}">
+                            2026-10-16T12:00:00Z
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button type="button"
+                                    th:hx-post="@{'/admin/htmx/news/' + ${news.id} + '/toggle-active'}"
+                                    hx-target="#news-table-container"
+                                    hx-include="[name='query'], [name='status']"
+                                    th:style="${news.active} ? 'color: #f87171; background: transparent; border: 1px solid #ef4444; font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.65rem; border-radius: 6px; cursor: pointer; margin-right: 0.5rem; transition: all 0.15s ease;' : 'color: #34d399; background: transparent; border: 1px solid #10b981; font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.65rem; border-radius: 6px; cursor: pointer; margin-right: 0.5rem; transition: all 0.15s ease;'"
+                                    th:text="${news.active} ? 'Deactivate' : 'Activate'">
+                                Deactivate
+                            </button>
+                            <a th:href="@{'/admin/news/' + ${news.id} + '/edit'}"
+                               class="btn-edit"
+                               style="color: #818cf8; text-decoration: none; font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.75rem; border: 1px solid #4f46e5; border-radius: 6px; transition: all 0.15s ease;">
+                                Edit
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(newsArticles)}">
+                        <td colspan="7" class="empty-state">
+                            No news articles found matching the selected criteria.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-footer">
+            <span th:text="${#lists.size(newsArticles)} + ' news article(s) displayed'">0 news article(s) displayed</span>
+        </div>
+    </div>
+</body>
+</html>

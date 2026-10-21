@@ -7,6 +7,7 @@ data class UserDto(
     val id: UUID,
     val email: String,
     val role: UserRole,
+    val emailVerified: Boolean = false,
     val createdAt: Instant,
     val updatedAt: Instant
 )

@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
       badge: 'Kaffee · Handfilter (V60)',
       name: 'Ethiopia Yirgacheffe Washed Grade 1',
       producerOrigin: 'Keffa Specialty Roastery · Yirgacheffe, Äthiopien',
-      rating: '9.2',
+      rating: '8.0',
       notes: '„Klarer, teeartiger Körper mit strahlender Zitrusfruchtigkeit und betörenden floralen Kopfnoten. Feine Honigsüße im Nachgeschmack.“',
       time: 'Eintrag gespeichert · Heute, 08:30 Uhr',
       flavors: [
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
       badge: 'Bier · New England IPA',
       name: 'Hazy Galaxy Double IPA',
       producerOrigin: 'Cloudline Brewing · Portland, USA (7.8% Vol.)',
-      rating: '8.9',
+      rating: '8.0',
       notes: '„Saftig und trüb mit explosiver tropischer Aromatik. Seidiges Mundgefühl dank Haferanteil, perfekt eingebundene Bittere.“',
       time: 'Eintrag gespeichert · Samstag, 19:15 Uhr',
       flavors: [
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       badge: 'Spirituosen · Islay Single Malt',
       name: 'Laphroaig 10 Cask Strength (Batch 15)',
       producerOrigin: 'Laphroaig Distillery · Islay, Schottland (56.5% Vol.)',
-      rating: '9.5',
+      rating: '9.0',
       notes: '„Kraftvoller Antritt von maritimem Rauch und Teer, gefolgt von einer überraschenden Malzsüße und warmer Eichenwürze. Langer, wärmender Nachklang.“',
       time: 'Eintrag gespeichert · 10. Oktober, 22:10 Uhr',
       flavors: [
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
       badge: 'Tee · Uji Gyokuro',
       name: 'Kyoto Supreme Gyokuro',
       producerOrigin: 'Marukyu Koyamaen · Uji, Kyoto, Japan',
-      rating: '9.4',
+      rating: '7.0',
       notes: '„Intensiv grüner Aufguss mit tiefem, samtigem Umami. Praktisch keine Bitterkeit bei 55°C Brühung. Sehr langanhaltende, süßliche Frische.“',
       time: 'Eintrag gespeichert · Vor 3 Tagen, 15:20 Uhr',
       flavors: [

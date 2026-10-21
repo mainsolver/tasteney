@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>Admin Profile & Management - Tasteney</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --surface-color: #111827;
+            --surface-card: #1f2937;
+            --border-color: #374151;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --badge-admin-bg: rgba(239, 68, 68, 0.2);
+            --badge-admin-text: #fca5a5;
+            --success-bg: rgba(16, 185, 129, 0.15);
+            --success-border: rgba(16, 185, 129, 0.3);
+            --success-text: #6ee7b7;
+            --error-bg: rgba(239, 68, 68, 0.15);
+            --error-border: rgba(239, 68, 68, 0.3);
+            --error-text: #fca5a5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .brand-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #a5b4fc, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.5rem 0.875rem;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-main);
+            background-color: var(--surface-card);
+        }
+
+        .nav-link.active {
+            color: #a5b4fc;
+            background-color: rgba(99, 102, 241, 0.15);
+            font-weight: 600;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .btn-logout {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-logout:hover {
+            color: #ef4444;
+            border-color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-success {
+            background-color: var(--success-bg);
+            border: 1px solid var(--success-border);
+            color: var(--success-text);
+        }
+
+        .alert-error {
+            background-color: var(--error-bg);
+            border: 1px solid var(--error-border);
+            color: var(--error-text);
+        }
+
+        .profile-card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .avatar-placeholder {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #818cf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .profile-details h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .profile-details p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-top: 0.2rem;
+        }
+
+        .forms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.75rem;
+        }
+
+        .form-card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .form-card-desc {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .form-input {
+            width: 100%;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.65rem 0.875rem;
+            color: var(--text-main);
+            font-size: 0.875rem;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.15s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .section-card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .admin-table th {
+            background-color: var(--surface-color);
+            padding: 0.875rem 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+        }
+
+        .admin-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+        }
+
+        .badge-admin {
+            background-color: var(--badge-admin-bg);
+            color: var(--badge-admin-text);
+        }
+
+        .timestamp {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .user-email {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <div class="brand-logo">TASTENEY ADMIN</div>
+            <div class="nav-links">
+                <a th:href="@{/admin/dashboard}" class="nav-link">Dashboard</a>
+                <a th:href="@{/admin/encyclopedia}" class="nav-link">Encyclopedia</a>
+                <a th:href="@{/admin/news}" class="nav-link">News</a>
+                <a th:href="@{/admin/profile}" class="nav-link active">Admin Profile</a>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <form th:action="@{/admin/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <button type="submit" class="btn-logout">Sign Out</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="page-header">
+            <h1 class="page-title">Admin Profile & Management</h1>
+            <p class="page-subtitle">Manage your account credentials and provision team administrators.</p>
+        </div>
+
+        <!-- Global Flash Alerts -->
+        <div th:if="${passwordSuccess}" class="alert alert-success" th:text="${passwordSuccess}"></div>
+        <div th:if="${passwordError}" class="alert alert-error" th:text="${passwordError}"></div>
+        <div th:if="${adminSuccess}" class="alert alert-success" th:text="${adminSuccess}"></div>
+        <div th:if="${adminError}" class="alert alert-error" th:text="${adminError}"></div>
+
+        <!-- Current Admin Profile Card -->
+        <div class="profile-card">
+            <div class="profile-info">
+                <div class="avatar-placeholder">A</div>
+                <div class="profile-details">
+                    <h2 th:text="${currentAdmin != null ? currentAdmin.email : 'Administrator'}">admin@tasteney.com</h2>
+                    <p>
+                        Role: <span class="badge badge-admin" th:text="${currentAdmin != null ? currentAdmin.role : 'ADMIN'}">ADMIN</span>
+                        <span th:if="${currentAdmin != null}" class="timestamp" style="margin-left: 0.75rem;" th:text="'Account ID: ' + ${currentAdmin.id}">ID</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Management Forms Grid -->
+        <div class="forms-grid">
+            <!-- Change Password Form -->
+            <div class="form-card">
+                <h2 class="form-card-title">Change Password</h2>
+                <p class="form-card-desc">Update your administrator password by confirming your current credentials.</p>
+
+                <form th:action="@{/admin/profile/change-password}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                    <div class="form-group">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" id="currentPassword" name="currentPassword" class="form-input" required placeholder="Enter current password" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" id="newPassword" name="newPassword" class="form-input" required minlength="6" placeholder="At least 6 characters" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required minlength="6" placeholder="Repeat new password" />
+                    </div>
+
+                    <button type="submit" class="btn-primary">Update Password</button>
+                </form>
+            </div>
+
+            <!-- Add Administrator Form -->
+            <div class="form-card">
+                <h2 class="form-card-title">Add Administrator</h2>
+                <p class="form-card-desc">Provision a new administrator account with back-office dashboard privileges.</p>
+
+                <form th:action="@{/admin/profile/add-admin}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                    <div class="form-group">
+                        <label for="adminEmail" class="form-label">Admin Email Address</label>
+                        <input type="email" id="adminEmail" name="email" class="form-input" required placeholder="new-admin@tasteney.com" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminPassword" class="form-label">Initial Password</label>
+                        <input type="password" id="adminPassword" name="password" class="form-input" required minlength="6" placeholder="At least 6 characters" />
+                    </div>
+
+                    <button type="submit" class="btn-primary">Create Administrator</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Existing Administrators List -->
+        <section class="section-card">
+            <div class="section-header">
+                <div class="section-title">Active Administrators</div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Email Address</th>
+                            <th>Role</th>
+                            <th>Registered Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="admin : ${admins}">
+                            <td class="user-email" th:text="${admin.email}">admin@tasteney.com</td>
+                            <td>
+                                <span class="badge badge-admin" th:text="${admin.role}">ADMIN</span>
+                            </td>
+                            <td class="timestamp" th:text="${#temporals.format(admin.createdAt, 'yyyy-MM-dd HH:mm:ss')} ?: ${admin.createdAt}">2026-10-16 12:00:00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

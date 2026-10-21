@@ -4,9 +4,9 @@ import biz.web4my.tasteney_be.user.internal.AuthRestController
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.security.authentication.AuthenticationManager
@@ -14,13 +14,12 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class AuthRestControllerTest {
 
@@ -40,6 +39,7 @@ class AuthRestControllerTest {
             id = UUID.randomUUID(),
             email = "test@example.com",
             role = UserRole.USER,
+            emailVerified = false,
             createdAt = Instant.now(),
             updatedAt = Instant.now()
         )
@@ -50,6 +50,87 @@ class AuthRestControllerTest {
 
         assertEquals(HttpStatus.CREATED, response.statusCode)
         assertEquals(expectedDto, response.body)
+    }
+
+    @Test
+    fun `verifyEmail with POST returns 200 OK`() {
+        val request = VerifyEmailRequest(token = "tok123")
+        val expectedDto = UserDto(
+            id = UUID.randomUUID(),
+            email = "test@example.com",
+            role = UserRole.USER,
+            emailVerified = true,
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        `when`(userService.verifyEmail("tok123")).thenReturn(expectedDto)
+
+        val response = controller.verifyEmail(request, null)
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals("Email verified successfully", response.body?.message)
+    }
+
+    @Test
+    fun `verifyEmailGet with HTML accept returns HTML`() {
+        val expectedDto = UserDto(
+            id = UUID.randomUUID(),
+            email = "test@example.com",
+            role = UserRole.USER,
+            emailVerified = true,
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        `when`(userService.verifyEmail("valid-tok")).thenReturn(expectedDto)
+
+        val response = controller.verifyEmailGet("valid-tok", "text/html,application/xhtml+xml")
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        val bodyStr = response.body.toString()
+        assertTrue(bodyStr.contains("E-Mail-Adresse erfolgreich bestätigt"))
+    }
+
+    @Test
+    fun `resendVerification calls service and returns 200 OK`() {
+        val request = ResendVerificationRequest(email = "test@example.com")
+
+        val response = controller.resendVerification(request)
+
+        verify(userService).resendVerificationEmail("test@example.com")
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertTrue(response.body?.message?.contains("Verification email sent") == true)
+    }
+
+    @Test
+    fun `forgotPassword calls service and returns 200 OK`() {
+        val request = ForgotPasswordRequest(email = "test@example.com")
+
+        val response = controller.forgotPassword(request)
+
+        verify(userService).requestPasswordReset("test@example.com")
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertTrue(response.body?.message?.contains("password reset link has been sent") == true)
+    }
+
+    @Test
+    fun `resetPassword calls service and returns 200 OK`() {
+        val request = ResetPasswordRequest(token = "tok123", newPassword = "newPassword123", confirmPassword = "newPassword123")
+
+        val response = controller.resetPassword(request)
+
+        verify(userService).resetPassword(request)
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertTrue(response.body?.message?.contains("Password has been reset") == true)
+    }
+
+    @Test
+    fun `resetPasswordGet returns form for HTML request when token valid`() {
+        `when`(userService.validatePasswordResetToken("tok123")).thenReturn(true)
+
+        val response = controller.resetPasswordGet("tok123", "text/html")
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertTrue(response.body.toString().contains("Neues Passwort vergeben"))
     }
 
     @Test
@@ -64,6 +145,7 @@ class AuthRestControllerTest {
             id = UUID.randomUUID(),
             email = "test@example.com",
             role = UserRole.USER,
+            emailVerified = true,
             createdAt = Instant.now(),
             updatedAt = Instant.now()
         )
@@ -104,6 +186,7 @@ class AuthRestControllerTest {
             id = UUID.randomUUID(),
             email = "test@example.com",
             role = UserRole.USER,
+            emailVerified = true,
             createdAt = Instant.now(),
             updatedAt = Instant.now()
         )

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div id="article-table-container" th:fragment="articleTable">
+        <div class="table-responsive">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Type</th>
+                        <th>Article ID</th>
+                        <th>Last Updated</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="article : ${articles}">
+                        <td>
+                            <span th:class="${article.active} ? 'badge badge-active' : 'badge badge-inactive'"
+                                  th:text="${article.active} ? 'Active' : 'Inactive'">
+                                Active
+                            </span>
+                        </td>
+                        <td class="user-email" style="font-weight: 600;" th:text="${article.title}">Cabernet Sauvignon</td>
+                        <td>
+                            <span class="badge badge-user" th:text="${article.category}">wine</span>
+                        </td>
+                        <td>
+                            <span class="badge" style="background-color: rgba(255, 255, 255, 0.1); color: #e5e7eb;" th:text="${article.type}">general</span>
+                        </td>
+                        <td class="mono-id" th:text="${article.id}">wine-cabernet-sauvignon</td>
+                        <td class="timestamp" th:text="${article.updatedAt}">
+                            2026-10-15T12:00:00Z
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button type="button"
+                                    th:hx-post="@{'/admin/htmx/encyclopedia/articles/' + ${article.id} + '/toggle-active'}"
+                                    hx-target="#article-table-container"
+                                    hx-include="[name='query'], [name='category'], [name='status']"
+                                    th:style="${article.active} ? 'color: #f87171; background: transparent; border: 1px solid #ef4444; font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.65rem; border-radius: 6px; cursor: pointer; margin-right: 0.5rem; transition: all 0.15s ease;' : 'color: #34d399; background: transparent; border: 1px solid #10b981; font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.65rem; border-radius: 6px; cursor: pointer; margin-right: 0.5rem; transition: all 0.15s ease;'"
+                                    th:text="${article.active} ? 'Deactivate' : 'Activate'">
+                                Deactivate
+                            </button>
+                            <a th:href="@{'/admin/encyclopedia/' + ${article.id} + '/edit'}"
+                               class="btn-edit"
+                               style="color: #818cf8; text-decoration: none; font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.75rem; border: 1px solid #4f46e5; border-radius: 6px; transition: all 0.15s ease;">
+                                Edit
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(articles)}">
+                        <td colspan="7" class="empty-state">
+                            No articles found matching the selected criteria.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-footer">
+            <span th:text="${#lists.size(articles)} + ' article(s) displayed'">0 article(s) displayed</span>
+        </div>
+    </div>
+</body>
+</html>

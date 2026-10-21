@@ -106,7 +106,7 @@ export default function EntryDetailScreen() {
               if (router.canGoBack()) {
                 router.back();
               } else {
-                router.replace('/');
+                router.replace('/diary');
               }
             } catch (err) {
               console.error('Failed to delete entry:', err);
@@ -122,7 +122,7 @@ export default function EntryDetailScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/');
+      router.replace('/diary');
     }
   };
 

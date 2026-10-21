@@ -45,6 +45,12 @@
             align-items: center;
         }
 
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
         .brand-logo {
             font-size: 1.5rem;
             font-weight: 800;
@@ -52,6 +58,33 @@
             background: linear-gradient(135deg, #a5b4fc, #6366f1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.5rem 0.875rem;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-main);
+            background-color: var(--surface-card);
+        }
+
+        .nav-link.active {
+            color: #a5b4fc;
+            background-color: rgba(99, 102, 241, 0.15);
+            font-weight: 600;
         }
 
         .nav-actions {
@@ -260,7 +293,15 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="brand-logo">TASTENEY ADMIN</div>
+        <div class="nav-left">
+            <div class="brand-logo">TASTENEY ADMIN</div>
+            <div class="nav-links">
+                <a th:href="@{/admin/dashboard}" class="nav-link active">Dashboard</a>
+                <a th:href="@{/admin/encyclopedia}" class="nav-link">Encyclopedia</a>
+                <a th:href="@{/admin/news}" class="nav-link">News</a>
+                <a th:href="@{/admin/profile}" class="nav-link">Admin Profile</a>
+            </div>
+        </div>
         <div class="nav-actions">
             <form th:action="@{/admin/logout}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />

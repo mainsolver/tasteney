@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title th:text="${isEdit} ? 'Edit News Article - Tasteney Admin' : 'Create News Article - Tasteney Admin'">News Editor - Tasteney Admin</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --surface-color: #111827;
+            --surface-card: #1f2937;
+            --border-color: #374151;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .brand-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #a5b4fc, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.5rem 0.875rem;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-main);
+            background-color: var(--surface-card);
+        }
+
+        .nav-link.active {
+            color: #a5b4fc;
+            background-color: rgba(99, 102, 241, 0.15);
+            font-weight: 600;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .btn-logout {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-logout:hover {
+            color: #ef4444;
+            border-color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .form-control {
+            width: 100%;
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        textarea.form-control {
+            min-height: 160px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .form-help {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--surface-card);
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            padding: 0.75rem 1.25rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <div class="brand-logo">Tasteney</div>
+            <div class="nav-links">
+                <a href="/admin/dashboard" class="nav-link">Dashboard</a>
+                <a href="/admin/encyclopedia" class="nav-link">Encyclopedia</a>
+                <a href="/admin/news" class="nav-link active">News</a>
+                <a href="/admin/profile" class="nav-link">Profile</a>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <form th:action="@{/admin/logout}" method="post">
+                <button type="submit" class="btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title" th:text="${isEdit} ? 'Edit News Article' : 'Create News Article'">Create News Article</h1>
+                <p class="page-subtitle" th:text="${isEdit} ? 'Update announcement details and publish status.' : 'Compose a new announcement or news item.'">Compose a new announcement or news item.</p>
+            </div>
+            <a href="/admin/news" class="btn-secondary">Back to News</a>
+        </div>
+
+        <div th:if="${newsError}" class="alert-error" th:text="${newsError}"></div>
+
+        <div class="card">
+            <form th:action="${isEdit} ? @{'/admin/news/' + ${newsForm.id} + '/edit'} : @{/admin/news/new}"
+                  th:object="${newsForm}"
+                  method="post">
+
+                <div class="form-group">
+                    <label class="form-label" for="headline">Headline *</label>
+                    <input type="text"
+                           id="headline"
+                           th:field="*{headline}"
+                           class="form-control"
+                           maxlength="255"
+                           placeholder="e.g. Tasteney App v2.0 Released!"
+                           required />
+                    <div class="form-help">
+                        <span>Short, engaging headline (max 255 chars).</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="text">News Text (max 1000 chars) *</label>
+                    <textarea id="text"
+                              th:field="*{text}"
+                              class="form-control"
+                              maxlength="1000"
+                              placeholder="Write your news article here..."
+                              required
+                              oninput="updateCharCount(this)"></textarea>
+                    <div class="form-help">
+                        <span>Concise news content.</span>
+                        <span id="charCount">0 / 1000</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="imagePath">Image Path (Optional)</label>
+                    <input type="text"
+                           id="imagePath"
+                           th:field="*{imagePath}"
+                           class="form-control"
+                           maxlength="512"
+                           placeholder="e.g. /images/news/update-v2.jpg or https://..." />
+                    <div class="form-help">
+                        <span>Optional relative path or external image URL.</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="link">External Link / URL (Optional)</label>
+                    <input type="url"
+                           id="link"
+                           th:field="*{link}"
+                           class="form-control"
+                           maxlength="512"
+                           placeholder="e.g. https://tasteney.com/blog/update-v2" />
+                    <div class="form-help">
+                        <span>Optional URL for users to learn more.</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" th:field="*{active}" />
+                        <span>Active (visible in public API and app)</span>
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <a href="/admin/news" class="btn-secondary">Cancel</a>
+                    <button type="submit"
+                            class="btn-primary"
+                            th:text="${isEdit} ? 'Save Changes' : 'Create Article'">
+                        Create Article
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function updateCharCount(textarea) {
+            const current = textarea.value.length;
+            const counter = document.getElementById('charCount');
+            if (counter) {
+                counter.innerText = current + ' / 1000';
+                if (current > 1000) {
+                    counter.style.color = '#ef4444';
+                } else {
+                    counter.style.color = 'var(--text-muted)';
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const textarea = document.getElementById('text');
+            if (textarea) {
+                updateCharCount(textarea);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+name: Build, Test and Deploy Spring Boot
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run Backend Tests & Modulith Verification
+        working-directory: tasteney-be
+        run: ./mvnw -B test
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:latest
+
+      - name: Deploy to VPS over SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          GHCR_USER: ${{ secrets.GHCR_USER }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          envs: IMAGE,GHCR_USER,GHCR_TOKEN
+          script: |
+            set -eu
+
+            echo "$GHCR_TOKEN" | docker login ghcr.io \
+              -u "$GHCR_USER" --password-stdin
+
+            # Pull image in lowercase
+            LOWERCASE_IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
+            docker pull "$LOWERCASE_IMAGE"
+
+            docker stop spring-boot-app || true
+            docker rm spring-boot-app || true
+
+            docker run -d \
+              --name spring-boot-app \
+              --env-file /opt/spring-boot-app/.env \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              "LOWERCASE_IMAGE"
+
+            docker image prune -f
+
+            docker logout ghcr.io

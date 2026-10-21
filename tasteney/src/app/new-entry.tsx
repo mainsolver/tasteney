@@ -24,6 +24,7 @@ import { SensorySelector } from '@/components/sensory-selector';
 import { saveDrinkEntry, getDrinkEntryById, getDrinkEntries } from '@/services/storage';
 import { resolveLocationFromAsset, getCurrentDeviceLocation } from '@/services/location';
 import { checkServerConnectivity } from '@/services/network';
+import { getUserPreferences, isNonAlcoholicArchetype } from '@/services/user-preferences';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { BeverageArchetype, BEVERAGE_SUBTYPES, SensoryDescriptor, DrinkEntry } from '@/types/drink';
 import { translateArchetype, translateSubtype } from '@/i18n';
@@ -51,6 +52,7 @@ export default function NewEntryScreen() {
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
   const [entries, setEntries] = useState<DrinkEntry[]>([]);
+  const [showAlcoholInfo, setShowAlcoholInfo] = useState(false);
   const [name, setName] = useState('');
   const [manufacturer, setManufacturer] = useState('');
   const [country, setCountry] = useState('');
@@ -108,6 +110,18 @@ export default function NewEntryScreen() {
       if (countB !== countA) {
         return countB - countA;
       }
+      if (!showAlcoholInfo) {
+        const isNonAlcA = isNonAlcoholicArchetype(a.label);
+        const isNonAlcB = isNonAlcoholicArchetype(b.label);
+        if (isNonAlcA && !isNonAlcB) return -1;
+        if (!isNonAlcA && isNonAlcB) return 1;
+        if (isNonAlcA && isNonAlcB) {
+          const nonAlcoholOrder = ['Coffee', 'Tea', 'Soda & Tonics'];
+          const idxA = nonAlcoholOrder.indexOf(a.label);
+          const idxB = nonAlcoholOrder.indexOf(b.label);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        }
+      }
       return ARCHETYPES.findIndex((x) => x.label === a.label) - ARCHETYPES.findIndex((x) => x.label === b.label);
     });
 
@@ -115,7 +129,7 @@ export default function NewEntryScreen() {
       sortedArchetypes: sorted,
       subtypeCountsByArchetype: subtypeCounts,
     };
-  }, [entries]);
+  }, [entries, showAlcoholInfo]);
 
   const archetype: BeverageArchetype =
     selectedArchetype ?? sortedArchetypes[0]?.label ?? ARCHETYPES[0].label;
@@ -184,6 +198,12 @@ export default function NewEntryScreen() {
       getDrinkEntries().then((data) => {
         if (isMounted) {
           setEntries(data);
+        }
+      });
+
+      getUserPreferences().then((prefs) => {
+        if (isMounted) {
+          setShowAlcoholInfo(prefs.showAlcoholInfo);
         }
       });
 
@@ -341,7 +361,7 @@ export default function NewEntryScreen() {
         if (router.canGoBack()) {
           router.back();
         } else {
-          router.push('/');
+          router.push('/diary');
         }
       }, 1200);
     } catch (error) {

@@ -8,20 +8,19 @@ import {
   useColorScheme,
   Platform,
   Linking,
+  LayoutChangeEvent,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/button';
 import { SearchBar } from '@/components/search-bar';
 import { CategoryPill } from '@/components/category-pill';
 import { Badge } from '@/components/badge';
 import { LinkedArticleContent } from '@/components/linked-article-content';
-import { BottomTabInset, Colors, Spacing } from '@/constants/theme';
+import { BottomTabInset, Colors, Spacing, MaxContentWidth } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import {
   getCategories,
@@ -32,6 +31,7 @@ import {
 import { DrinkArticle, ArticleType } from '@/types/drink-knowledge';
 import { isGerman, translateArchetype } from '@/i18n';
 import { BeverageArchetype } from '@/types/drink';
+import { getUserPreferences, isNonAlcoholicArchetype } from '@/services/user-preferences';
 
 const TYPE_CONFIG: Record<
   ArticleType,
@@ -49,12 +49,13 @@ export default function ExploreKnowledgeScreen() {
   const { t } = useTranslation();
   const german = isGerman();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
-  const safeAreaInsets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedArticleType, setSelectedArticleType] = useState<ArticleType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
+  const [showAlcoholInfo, setShowAlcoholInfo] = useState<boolean>(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const cardOffsetsRef = useRef<Record<string, number>>({});
@@ -68,27 +69,43 @@ export default function ExploreKnowledgeScreen() {
         document.documentElement?.scrollTo?.(0, 0);
         document.body?.scrollTo?.(0, 0);
       }
+      getUserPreferences().then((prefs) => {
+        setShowAlcoholInfo(prefs.showAlcoholInfo);
+      });
     }, [])
   );
-
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
 
   const currentLanguage = german ? 'de' : 'en';
 
   const categories = useMemo(() => {
+    const rawCategories = getCategories().map((c) => ({
+      id: c.id,
+      name: german && c.archetype ? translateArchetype(c.archetype as BeverageArchetype) : c.name,
+      icon: c.icon || '🍹',
+      archetype: c.archetype,
+    }));
+
+    const sortedRaw = [...rawCategories].sort((a, b) => {
+      if (!showAlcoholInfo) {
+        const isNonAlcA = a.archetype ? isNonAlcoholicArchetype(a.archetype) : false;
+        const isNonAlcB = b.archetype ? isNonAlcoholicArchetype(b.archetype) : false;
+        if (isNonAlcA && !isNonAlcB) return -1;
+        if (!isNonAlcA && isNonAlcB) return 1;
+        if (isNonAlcA && isNonAlcB && a.archetype && b.archetype) {
+          const nonAlcoholOrder = ['Coffee', 'Tea', 'Soda & Tonics'];
+          const idxA = nonAlcoholOrder.indexOf(a.archetype);
+          const idxB = nonAlcoholOrder.indexOf(b.archetype);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        }
+      }
+      return 0;
+    });
+
     return [
       { id: 'all', name: t('common.all'), icon: '🌟', archetype: undefined },
-      ...getCategories().map((c) => ({
-        id: c.id,
-        name: german && c.archetype ? translateArchetype(c.archetype as BeverageArchetype) : c.name,
-        icon: c.icon || '🍹',
-        archetype: c.archetype,
-      })),
+      ...sortedRaw,
     ];
-  }, [t, german]);
+  }, [t, german, showAlcoholInfo]);
 
   const articleTypesList = useMemo(() => {
     return [
@@ -420,11 +437,27 @@ export default function ExploreKnowledgeScreen() {
   };
 
   return (
-    <View
-      style={[
-        styles.screen,
-        { backgroundColor: colors.background, paddingTop: safeAreaInsets.top },
-      ]}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + (Platform.OS === 'web' ? Spacing.four : Spacing.two),
+            backgroundColor: colors.surfaceContainerLowest,
+            borderBottomColor: colors.surfaceContainerHigh,
+          },
+        ]}>
+        <View style={styles.headerContent}>
+          <Text style={[styles.headerSubtitle, { color: colors.secondary }]}>
+            {t('explore.headerSub')}
+          </Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            {t('explore.headerTitle')}
+          </Text>
+        </View>
+      </View>
+
       <ScrollView
         ref={scrollViewRef}
         keyboardShouldPersistTaps="handled"
@@ -434,31 +467,15 @@ export default function ExploreKnowledgeScreen() {
         contentContainerStyle={[
           styles.contentContainer,
           {
-            paddingBottom: insets.bottom,
-            paddingLeft: safeAreaInsets.left,
-            paddingRight: safeAreaInsets.right,
+            paddingBottom: insets.bottom + BottomTabInset + Spacing.six,
+            paddingLeft: insets.left,
+            paddingRight: insets.right,
           },
         ]}
         showsVerticalScrollIndicator={false}>
-        <ThemedView style={styles.container}>
-          {/* Header Title Section */}
-          <ThemedView style={styles.header}>
-            <View style={styles.headerTitleRow}>
-              <View style={[styles.titleIconBadge, { backgroundColor: colors.secondaryFixed }]}>
-                <Text style={styles.titleIconText}>📖</Text>
-              </View>
-              <View style={styles.titleTextCol}>
-                <ThemedText type="subtitle" style={styles.screenMainTitle}>
-                  {german ? 'Getränke-Enzyklopädie' : 'Drink Encyclopedia'}
-                </ThemedText>
-                <ThemedText style={styles.screenSubtitle} themeColor="textSecondary">
-                  {german
-                    ? 'Wissen, Terroirs, Zutaten & vernetzte Verkostungs-Guides'
-                    : 'History, origins, ingredients & connected tasting guides'}
-                </ThemedText>
-              </View>
-            </View>
-
+        <View style={styles.container}>
+          {/* Controls Section */}
+          <View style={styles.controlsSection}>
             {/* Search Bar */}
             <SearchBar
               value={searchQuery}
@@ -507,12 +524,12 @@ export default function ExploreKnowledgeScreen() {
                 );
               })}
             </ScrollView>
-          </ThemedView>
+          </View>
 
           {/* Knowledge Articles List */}
-          <ThemedView
+          <View
             style={styles.articlesList}
-            onLayout={(e) => {
+            onLayout={(e: LayoutChangeEvent) => {
               listOffsetYRef.current = e.nativeEvent.layout.y;
             }}>
             {filteredArticles.length === 0 ? (
@@ -548,8 +565,8 @@ export default function ExploreKnowledgeScreen() {
             ) : (
               filteredArticles.map(renderArticleCard)
             )}
-          </ThemedView>
-        </ThemedView>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -559,57 +576,42 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
+  header: {
+    paddingHorizontal: Spacing.four,
+    paddingBottom: Spacing.three,
+    borderBottomWidth: 1,
+  },
+  headerContent: {
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  headerSubtitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
     flexGrow: 1,
-    paddingTop: Spacing.two,
+    paddingTop: Spacing.four,
   },
   container: {
     flex: 1,
     paddingHorizontal: Spacing.four,
     gap: Spacing.four,
-    maxWidth: 800,
+    maxWidth: MaxContentWidth,
     width: '100%',
     alignSelf: 'center',
   },
-  header: {
+  controlsSection: {
     gap: Spacing.three,
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    marginBottom: Spacing.one,
-  },
-  titleIconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4d0011',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  titleIconText: {
-    fontSize: 24,
-  },
-  titleTextCol: {
-    flex: 1,
-    gap: 2,
-  },
-  screenMainTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    lineHeight: 32,
-  },
-  screenSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
   },
   filterPillsScroll: {
     gap: Spacing.two,

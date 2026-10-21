@@ -67,7 +67,17 @@ class SecurityConfiguration {
             .securityMatcher("/api/**")
             .csrf { it.disable() }
             .authorizeHttpRequests { auth ->
-                auth.requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                auth.requestMatchers(
+                    "/api/v1/auth/register",
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/verify-email",
+                    "/api/v1/auth/resend-verification",
+                    "/api/v1/auth/forgot-password",
+                    "/api/v1/auth/reset-password"
+                ).permitAll()
+                auth.requestMatchers("/api/v1/encyclopedia/**").permitAll()
+                auth.requestMatchers("/api/v1/news/**").permitAll()
+                auth.requestMatchers("/api/v1/connection/**", "/api/v1/connection").permitAll()
                 auth.requestMatchers("/api/v1/auth/me", "/api/v1/auth/logout").authenticated()
                 auth.requestMatchers("/api/**").authenticated()
             }
