@@ -58,6 +58,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: tasteney-be/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.sha }}
@@ -93,7 +94,7 @@ jobs:
               --env-file /opt/spring-boot-app/.env \
               --restart unless-stopped \
               -p 8080:8080 \
-              "LOWERCASE_IMAGE"
+              "$LOWERCASE_IMAGE"
 
             docker image prune -f
 
